@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>TranscripTonic—Meetings</title>
+		<style>
+			@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap");
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			:root {
+				/* Primary Colors */
+				--primary: #3b82f6;
+				--primary-hover: #2563eb;
+				--primary-light: #eff6ff;
+
+				/* Functional Colors */
+				--success: #10b981;
+				--success-bg: #ecfdf5;
+				--error: #ef4444;
+				--error-bg: #fef2f2;
+				--warning: #f59e0b;
+				--warning-bg: #fffbeb;
+				--info: #6366f1;
+				--info-bg: #eef2ff;
+
+				/* Neutral Colors */
+				--bg-page: #f8fafc;
+				--bg-card: #ffffff;
+				--text-main: #0f172a;
+				--text-secondary: #475569;
+				--text-muted: #94a3b8;
+				--border: #e2e8f0;
+				--border-focus: #3b82f6;
+
+				/* Effects */
+				--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+				--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+				--radius-lg: 16px;
+				--radius-md: 8px;
+				--radius-sm: 4px;
+				--transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+			}
+
+			body {
+				font-family: "Work Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+				background: var(--bg-page);
+				color: var(--text-main);
+				font-size: 15px;
+				line-height: 1.5;
+				min-height: 100vh;
+				-webkit-font-smoothing: antialiased;
+			}
+
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 32px 20px;
+			}
+
+			@media (min-width: 768px) {
+				.container {
+					padding: 48px 32px;
+				}
+			}
+
+			/* Typography */
+			h1,
+			h2,
+			h3,
+			.font-heading {
+				font-family: "Outfit", sans-serif;
+				font-weight: 600;
+				color: var(--text-main);
+			}
+
+			/* Header */
+			.header {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				margin-bottom: 40px;
+			}
+
+			.header-top {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				margin-bottom: 8px;
+			}
+
+			.logo {
+				width: 40px;
+				height: 40px;
+				border-radius: 10px;
+				box-shadow: var(--shadow-sm);
+			}
+
+			h1 {
+				font-size: 28px;
+				letter-spacing: -0.02em;
+			}
+
+			.subtitle {
+				font-size: 16px;
+				color: var(--text-secondary);
+				max-width: 600px;
+			}
+
+			/* Layout Grid */
+			.main-grid {
+				display: grid;
+				gap: 32px;
+				grid-template-columns: 1fr;
+			}
+
+			@media (min-width: 1024px) {
+				.main-grid {
+					grid-template-columns: 2fr 1fr;
+				}
+			}
+
+			/* Cards */
+			.card {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-lg);
+				box-shadow: var(--shadow-sm);
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+			}
+
+			.card-header {
+				padding: 24px;
+				border-bottom: 1px solid var(--border);
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				background: #ffffff;
+			}
+
+			.card-title {
+				font-size: 18px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.card-body {
+				padding: 24px;
+			}
+
+			/* Buttons */
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+				padding: 10px 20px;
+				border-radius: var(--radius-md);
+				font-family: "Outfit", sans-serif;
+				font-weight: 500;
+				font-size: 14px;
+				cursor: pointer;
+				transition: var(--transition);
+				border: 1px solid transparent;
+				line-height: 1;
+			}
+
+			.btn-primary {
+				background: var(--primary);
+				color: white;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			}
+
+			.btn-primary:hover {
+				background: var(--primary-hover);
+				transform: translateY(-1px);
+			}
+
+			.btn-outline {
+				background: transparent;
+				border-color: var(--border);
+				color: var(--text-secondary);
+			}
+
+			.btn-outline:hover {
+				border-color: var(--text-secondary);
+				color: var(--text-main);
+				background: var(--bg-page);
+			}
+
+			.btn:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+				transform: none !important;
+			}
+
+			/* Form Elements */
+			.form-group {
+				margin-bottom: 24px;
+			}
+
+			.form-group:last-child {
+				margin-bottom: 0;
+			}
+
+			label {
+				display: block;
+				font-size: 14px;
+				font-weight: 500;
+				color: var(--text-main);
+				margin-bottom: 8px;
+			}
+
+			.input-group {
+				display: flex;
+				gap: 8px;
+			}
+
+			input[type="url"],
+			input[type="text"] {
+				flex: 1;
+				padding: 10px 12px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				font-family: inherit;
+				font-size: 14px;
+				color: var(--text-main);
+				background: var(--bg-card);
+				transition: var(--transition);
+			}
+
+			input[type="url"]:focus,
+			input[type="text"]:focus {
+				outline: none;
+				border-color: var(--primary);
+				box-shadow: 0 0 0 3px var(--primary-light);
+			}
+
+			/* Toggle Switch */
+			.toggle-wrapper {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 12px;
+				background: var(--bg-page);
+				border-radius: var(--radius-md);
+				border: 1px solid var(--border);
+			}
+
+			.toggle-label {
+				font-size: 14px;
+				color: var(--text-main);
+				font-weight: 500;
+			}
+
+			.switch {
+				position: relative;
+				display: inline-block;
+				width: 44px;
+				height: 24px;
+			}
+
+			.switch input {
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+
+			.slider {
+				position: absolute;
+				cursor: pointer;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background-color: var(--text-muted);
+				transition: 0.3s;
+				border-radius: 24px;
+			}
+
+			.slider:before {
+				position: absolute;
+				content: "";
+				height: 18px;
+				width: 18px;
+				left: 3px;
+				bottom: 3px;
+				background-color: white;
+				transition: 0.3s;
+				border-radius: 50%;
+			}
+
+			input:checked + .slider {
+				background-color: var(--primary);
+			}
+
+			input:checked + .slider:before {
+				transform: translateX(20px);
+			}
+
+			/* Radio Cards */
+			.radio-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+			}
+
+			.radio-card {
+				position: relative;
+			}
+
+			.radio-card input {
+				position: absolute;
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+
+			.radio-content {
+				display: block;
+				padding: 16px;
+				border: 2px solid var(--border);
+				border-radius: var(--radius-md);
+				cursor: pointer;
+				transition: var(--transition);
+				height: 100%;
+			}
+
+			.radio-content strong {
+				display: block;
+				font-family: "Outfit", sans-serif;
+				color: var(--text-main);
+				margin-bottom: 4px;
+			}
+
+			.radio-content span {
+				font-size: 13px;
+				color: var(--text-secondary);
+				line-height: 1.4;
+			}
+
+			.radio-card input:checked + .radio-content {
+				border-color: var(--primary);
+				background-color: var(--primary-light);
+			}
+
+			/* Table Styles */
+			.table-container {
+				width: 100%;
+				overflow-x: auto;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: separate;
+				border-spacing: 0;
+				min-width: 600px;
+			}
+
+			th {
+				text-align: left;
+				padding: 16px;
+				font-size: 12px;
+				font-weight: 600;
+				text-transform: uppercase;
+				color: var(--text-secondary);
+				letter-spacing: 0.05em;
+				border-bottom: 1px solid var(--border);
+				background: var(--bg-card);
+				position: sticky;
+				top: 0;
+			}
+
+			td {
+				padding: 16px;
+				border-bottom: 1px solid var(--border);
+				color: var(--text-main);
+				font-size: 14px;
+				vertical-align: middle;
+			}
+
+			tr:last-child td {
+				border-bottom: none;
+			}
+
+			tr:hover td {
+				background-color: var(--bg-page);
+			}
+
+			/* Status Badges */
+			.status-badge {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 4px 10px;
+				border-radius: 20px;
+				font-size: 12px;
+				font-weight: 500;
+				line-height: 1;
+			}
+
+			.status-success {
+				background-color: var(--success-bg);
+				color: var(--success);
+			}
+
+			.status-failed {
+				background-color: var(--error-bg);
+				color: var(--error);
+			}
+
+			.status-new {
+				background-color: var(--info-bg);
+				color: var(--info);
+			}
+
+			.status-badge::before {
+				content: "";
+				display: block;
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background-color: currentColor;
+			}
+
+			/* Action Buttons */
+			.action-group {
+				display: flex;
+				gap: 8px;
+				justify-content: flex-end;
+			}
+
+			.icon-btn {
+				width: 32px;
+				height: 32px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: var(--radius-sm);
+				border: 1px solid transparent;
+				background: transparent;
+				color: var(--text-secondary);
+				cursor: pointer;
+				transition: var(--transition);
+			}
+
+			.icon-btn:hover {
+				background-color: var(--bg-page);
+				color: var(--primary);
+				border-color: var(--border);
+			}
+
+			.icon-btn.delete:hover {
+				color: var(--error);
+				background-color: var(--error-bg);
+				border-color: transparent;
+			}
+
+			.icon-btn img {
+				width: 16px;
+				height: 16px;
+				opacity: 0.7;
+			}
+
+			.icon-btn:hover img {
+				opacity: 1;
+			}
+
+			/* Editable Title */
+			.meeting-title {
+				font-weight: 500;
+				color: var(--text-main);
+				padding: 4px 8px;
+				border-radius: var(--radius-sm);
+				transition: var(--transition);
+				text-decoration: none !important;
+				border: 1px solid transparent;
+				cursor: text;
+			}
+
+			.meeting-title:hover,
+			.meeting-title:focus {
+				background-color: var(--bg-page);
+				border-color: var(--border);
+				outline: none;
+			}
+
+			/* Fade Mask */
+			.fade-mask {
+				mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+				-webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+				max-height: 400px;
+				overflow: hidden;
+			}
+
+			/* Integration Links */
+			.integration-list {
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+			}
+
+			.integration-item {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 12px;
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				text-decoration: none;
+				color: var(--text-main);
+				transition: var(--transition);
+			}
+
+			.integration-item:hover {
+				border-color: var(--primary);
+				background-color: var(--bg-page);
+				transform: translateX(2px);
+			}
+
+			.integration-icon {
+				color: var(--primary);
+			}
+
+			/* Code Block */
+			details {
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				overflow: hidden;
+				margin-top: 12px;
+			}
+
+			summary {
+				padding: 12px 16px;
+				background: var(--bg-page);
+				cursor: pointer;
+				font-weight: 500;
+				font-size: 13px;
+				color: var(--text-secondary);
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			summary:hover {
+				color: var(--text-main);
+			}
+
+			pre {
+				margin: 0;
+				padding: 16px;
+				background: #1e293b;
+				color: #e2e8f0;
+				font-family: "Menlo", "Monaco", "Courier New", monospace;
+				font-size: 12px;
+				overflow-x: auto;
+			}
+
+			/* Footer */
+			.footer {
+				margin-top: 48px;
+				padding-top: 24px;
+				border-top: 1px solid var(--border);
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				font-size: 13px;
+				color: var(--text-muted);
+			}
+
+			.footer a {
+				color: var(--text-secondary);
+				text-decoration: none;
+				transition: var(--transition);
+			}
+
+			.footer a:hover {
+				color: var(--primary);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="main-grid">
+				<!-- Left Column: Meetings List -->
+				<section class="card">
+					<div class="card-header">
+						<h2 class="card-title">Recent Meetings</h2>
+						<button id="recover-last-meeting" class="btn btn-primary">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+								<path d="M21 3v5h-5" />
+							</svg>
+							Recover Last
+						</button>
+					</div>
+
+					<div id="meetings-table-container" class="table-container">
+						<table>
+							<thead>
+								<tr>
+									<th>Meeting Title</th>
+									<th>Date & Duration</th>
+									<th>Status</th>
+									<th style="text-align: right">Actions</th>
+								</tr>
+							</thead>
+							<tbody id="meetings-table">
+								<!-- JS Populated -->
+							</tbody>
+						</table>
+					</div>
+
+					<div class="show-all-wrapper" style="padding: 16px; border-top: 1px solid var(--border)">
+						<button id="show-all" class="btn btn-outline" style="width: 100%; display: none">Show All History</button>
+					</div>
+				</section>
+
+				<!-- Right Column: Settings & Help -->
+				<div style="display: flex; flex-direction: column; gap: 24px">
+					<!-- Webhook Configuration -->
+					<section class="card">
+						<div class="card-header">
+							<h3 class="card-title">
+								<svg
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									style="color: var(--primary)"
+								>
+									<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+									<polyline points="16 6 12 2 8 6" />
+									<line x1="12" y1="2" x2="12" y2="15" />
+								</svg>
+								Webhook Setup
+							</h3>
+						</div>
+						<div class="card-body">
+							<form id="webhook-url-form">
+								<div class="form-group">
+									<label for="webhook-url">Webhook URL</label>
+									<div class="input-group">
+										<input type="url" id="webhook-url" placeholder="https://api.your-service.com/webhook" required />
+										<button id="save-webhook" class="btn btn-primary">Save</button>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<div class="toggle-wrapper">
+										<span class="toggle-label">Auto-post after meeting</span>
+										<label class="switch">
+											<input type="checkbox" id="auto-post-webhook" checked />
+											<span class="slider"></span>
+										</label>
+									</div>
+								</div>
+
+								<div class="form-group">
+									<label>Payload Format</label>
+									<div class="radio-grid">
+										<label class="radio-card">
+											<input type="radio" name="webhook-body-type" id="simple-webhook-body" checked />
+											<div class="radio-content">
+												<strong>Simple</strong>
+												<span>Pre-formatted text for Notion/Docs</span>
+											</div>
+										</label>
+										<label class="radio-card">
+											<input type="radio" name="webhook-body-type" id="advanced-webhook-body" />
+											<div class="radio-content">
+												<strong>Advanced</strong>
+												<span>Raw JSON for custom processing</span>
+											</div>
+										</label>
+									</div>
+								</div>
+							</form>
+						</div>
+					</section>
+
+					<!-- Help & Docs -->
+					<section class="card">
+						<div class="card-header">
+							<h3 class="card-title">
+								<svg
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									style="color: var(--primary)"
+								>
+									<circle cx="12" cy="12" r="10" />
+									<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+									<line x1="12" y1="17" x2="12.01" y2="17" />
+								</svg>
+								Integration Guides
+							</h3>
+						</div>
+						<div class="card-body">
+							<div class="integration-list">
+								<a
+									href="https://github.com/hongbietcode/transcriptonic/blob/main/docs/google-docs-integration-guide.md"
+									target="_blank"
+									class="integration-item"
+								>
+									<svg
+										class="integration-icon"
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+										<polyline points="14 2 14 8 20 8" />
+									</svg>
+									<span>Google Docs Guide</span>
+								</a>
+								<a
+									href="https://github.com/hongbietcode/transcriptonic/blob/main/docs/n8n-integration-guide.md"
+									target="_blank"
+									class="integration-item"
+								>
+									<svg
+										class="integration-icon"
+										width="18"
+										height="18"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<circle cx="12" cy="12" r="3" />
+										<path d="M12 1v6m0 6v6" />
+										<path d="M1 12h6m6 0h6" />
+									</svg>
+									<span>n8n Automation Guide</span>
+								</a>
+							</div>
+
+							<div style="margin-top: 16px">
+								<label style="font-size: 12px; color: var(--text-secondary)">Payload Examples</label>
+								<details>
+									<summary>Simple JSON</summary>
+									<pre>
+{
+  "webhookBodyType": "simple",
+  "meetingSoftware": "Google Meet",
+  "meetingTitle": "Team Sync",
+  "transcript": "Speaker 1 (10:00): Hello..."
+}</pre
+									>
+								</details>
+								<details>
+									<summary>Advanced JSON</summary>
+									<pre>
+{
+  "webhookBodyType": "advanced",
+  "transcript": [
+    {
+      "personName": "Speaker 1",
+      "timestamp": "2024-01-15T10:00:00Z",
+      "transcriptText": "Hello"
+    }
+  ]
+}</pre
+									>
+								</details>
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+
+			<footer class="footer">
+				<div class="footer-left">
+					<span id="version">v0.1.0</span>
+				</div>
+				<div class="footer-right">Crafted by <a href="https://github.com/hongbietcode" target="_blank">hongbietcode</a></div>
+			</footer>
+		</div>
+
+		<script type="module" src="meetings.js"></script>
+	</body>
+</html>

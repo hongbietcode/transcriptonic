@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>TranscripTonic</title>
+		<style>
+			@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap");
+
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				width: 420px;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: #1e293b;
+				font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+				font-size: 14px;
+				line-height: 1.6;
+			}
+
+			.container {
+				background: #ffffff;
+				min-height: 100vh;
+			}
+
+			/* Header */
+			.header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				padding: 24px 20px;
+				color: white;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.header::before {
+				content: "";
+				position: absolute;
+				top: -50%;
+				right: -20%;
+				width: 200px;
+				height: 200px;
+				background: rgba(255, 255, 255, 0.1);
+				border-radius: 50%;
+			}
+
+			.header-content {
+				display: flex;
+				align-items: center;
+				gap: 16px;
+				position: relative;
+				z-index: 1;
+			}
+
+			.logo {
+				width: 48px;
+				height: 48px;
+				border-radius: 12px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+				flex-shrink: 0;
+			}
+
+			.header-text h1 {
+				font-family: "Poppins", sans-serif;
+				font-size: 22px;
+				font-weight: 700;
+				margin-bottom: 4px;
+			}
+
+			.header-text p {
+				font-size: 13px;
+				opacity: 0.95;
+				font-weight: 500;
+			}
+
+			/* Main Content */
+			.content {
+				padding: 24px 20px;
+			}
+
+			/* Mode Selection Card */
+			.mode-card {
+				background: #f8fafc;
+				border: 1.5px solid #e2e8f0;
+				border-radius: 12px;
+				padding: 20px;
+				margin-bottom: 16px;
+				transition: all 0.2s ease;
+			}
+
+			.mode-card:hover {
+				border-color: #cbd5e1;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+			}
+
+			.mode-option {
+				display: flex;
+				align-items: flex-start;
+				gap: 12px;
+				padding: 12px;
+				border-radius: 8px;
+				cursor: pointer;
+				transition: background 0.2s ease;
+			}
+
+			.mode-option:hover {
+				background: rgba(37, 99, 235, 0.05);
+			}
+
+			.mode-option + .mode-option {
+				margin-top: 12px;
+			}
+
+			.mode-option input[type="radio"] {
+				margin-top: 2px;
+				width: 18px;
+				height: 18px;
+				cursor: pointer;
+				accent-color: #2563eb;
+				flex-shrink: 0;
+			}
+
+			.mode-label {
+				flex: 1;
+				cursor: pointer;
+			}
+
+			.mode-label strong {
+				display: block;
+				font-family: "Poppins", sans-serif;
+				font-size: 15px;
+				font-weight: 600;
+				color: #1e293b;
+				margin-bottom: 4px;
+			}
+
+			.mode-label span {
+				display: block;
+				font-size: 13px;
+				color: #64748b;
+				line-height: 1.5;
+			}
+
+			.info-text {
+				margin-top: 16px;
+				padding: 12px;
+				background: rgba(37, 99, 235, 0.06);
+				border-left: 3px solid #2563eb;
+				border-radius: 6px;
+				font-size: 12px;
+				color: #475569;
+				line-height: 1.5;
+			}
+
+			/* Integration Card */
+			.integration-card {
+				background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+				border: 1.5px solid #e2e8f0;
+				border-radius: 12px;
+				padding: 16px;
+				margin-bottom: 16px;
+				text-align: center;
+			}
+
+			.integration-text {
+				font-size: 13px;
+				color: #475569;
+			}
+
+			.integration-link {
+				color: #2563eb;
+				text-decoration: none;
+				font-weight: 600;
+				white-space: nowrap;
+				transition: color 0.2s ease;
+			}
+
+			.integration-link:hover {
+				color: #1d4ed8;
+			}
+
+			/* Footer Links */
+			.footer {
+				border-top: 1px solid #e2e8f0;
+				padding: 20px;
+			}
+
+			.footer-nav {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+				margin-bottom: 16px;
+			}
+
+			.footer-link {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 12px;
+				background: #f8fafc;
+				border-radius: 8px;
+				text-decoration: none;
+				color: #475569;
+				font-size: 13px;
+				font-weight: 500;
+				transition: all 0.2s ease;
+			}
+
+			.footer-link:hover {
+				background: #f1f5f9;
+				color: #2563eb;
+				transform: translateX(2px);
+			}
+
+			.footer-link .arrow {
+				color: #cbd5e1;
+				transition: color 0.2s ease;
+			}
+
+			.footer-link:hover .arrow {
+				color: #2563eb;
+			}
+
+			.footer-meta {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				font-size: 11px;
+				color: #94a3b8;
+				padding-top: 12px;
+			}
+
+			.footer-meta a {
+				color: #64748b;
+				text-decoration: none;
+				transition: color 0.2s ease;
+			}
+
+			.footer-meta a:hover {
+				color: #2563eb;
+			}
+
+			.divider {
+				margin: 0 6px;
+				color: #cbd5e1;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<!-- Header -->
+			<div class="header">
+				<div class="header-content">
+					<img class="logo" src="./icon.png" alt="TranscripTonic" />
+					<div class="header-text">
+						<h1>TranscripTonic</h1>
+						<p>Simple Google Meet transcripts. Private & open source.</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Content -->
+			<div class="content">
+				<!-- Mode Selection -->
+				<div class="mode-card">
+					<div class="mode-option">
+						<input type="radio" name="mode" id="auto-mode" />
+						<label for="auto-mode" class="mode-label">
+							<strong>Auto Mode</strong>
+							<span>Automatically record all meetings</span>
+						</label>
+					</div>
+					<div class="mode-option">
+						<input type="radio" name="mode" id="manual-mode" />
+						<label for="manual-mode" class="mode-label">
+							<strong>Manual Mode</strong>
+							<span>Toggle CC icon in Google Meet to start recording</span>
+						</label>
+					</div>
+					<div class="info-text">📥 Transcript downloads as a text file at the end of each meeting</div>
+				</div>
+
+				<!-- Integration -->
+				<div class="integration-card">
+					<div class="integration-text">
+						Integrate with <strong>Google Docs, Notion, n8n</strong> via
+						<a href="meetings.html#webhooks" target="_blank" class="integration-link">webhooks →</a>
+					</div>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<div class="footer">
+				<div class="footer-nav">
+					<a href="./meetings.html" target="_blank" class="footer-link">
+						<span>Last 10 Meetings</span>
+						<span class="arrow">→</span>
+					</a>
+				</div>
+				<div class="footer-meta">
+					<span id="version"></span>
+					<span>by <a href="https://github.com/hongbietcode" target="_blank">hongbietcode</a></span>
+				</div>
+			</div>
+		</div>
+
+		<script type="module" src="popup.js"></script>
+	</body>
+</html>

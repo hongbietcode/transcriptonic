@@ -1,0 +1,25 @@
+{
+    "name": "transcriptonic",
+    "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hongbietcode/transcriptonic.git"
+    },
+    "author": "hongbietcode",
+    "bugs": {
+        "url": "https://github.com/hongbietcode/transcriptonic/issues"
+    },
+    "homepage": "https://github.com/hongbietcode/transcriptonic#readme",
+    "description": "Simple Google Meet transcripts. Private and open source.",
+    "scripts": {
+        "build": "npm run clean && tsc && npm run copy-assets",
+        "copy-assets": "mkdir -p dist/icons && cp extension/*.html extension/manifest.json extension/icon.png dist/ && cp extension/icons/* dist/icons/",
+        "watch": "tsc --watch",
+        "clean": "rm -rf dist",
+        "dev": "npm run build && npm run watch"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.268",
+        "typescript": "^5.3.3"
+    }
+}
