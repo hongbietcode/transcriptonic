@@ -97,6 +97,7 @@ export interface ResultSync {
 	operationMode?: OperationMode;
 	webhookBodyType?: WebhookBodyType;
 	webhookUrl?: WebhookUrl;
+	webhookUrls?: WebhookUrl[];
 }
 
 /** Whether to automatically post the webhook after each meeting */

@@ -117,7 +117,6 @@ function handleTranscriptEntry(entry: TranscriptBlock): void {
 		} else {
 		}
 	}
-
 }
 
 function handleMeetingEnded(): void {
@@ -153,6 +152,14 @@ function updateNavigation(): void {
 	});
 }
 
+function updateActionButtons(hasContent: boolean): void {
+	const downloadBtn = document.getElementById("download-current-btn") as HTMLButtonElement;
+	const webhookBtn = document.getElementById("webhook-btn") as HTMLButtonElement;
+
+	if (downloadBtn) downloadBtn.disabled = !hasContent;
+	if (webhookBtn) webhookBtn.disabled = !hasContent;
+}
+
 function renderTranscript(): void {
 	const container = document.getElementById("transcript-list");
 	const emptyState = document.getElementById("empty-state");
@@ -167,14 +174,14 @@ function renderTranscript(): void {
 			emptyState.style.display = "flex";
 			container.appendChild(emptyState);
 		}
+		updateActionButtons(false);
 		return;
 	}
 
 	if (emptyState) emptyState.style.display = "none";
 
-	container.innerHTML = filteredEntries
-		.map((entry) => createTranscriptEntryHTML(entry))
-		.join("");
+	container.innerHTML = filteredEntries.map((entry) => createTranscriptEntryHTML(entry)).join("");
+	updateActionButtons(true);
 }
 
 function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
@@ -189,6 +196,7 @@ function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
 	const div = document.createElement("div");
 	div.innerHTML = createTranscriptEntryHTML(entry);
 	container.appendChild(div.firstElementChild!);
+	updateActionButtons(true);
 }
 
 function updateLastTranscriptEntry(entry: LiveTranscriptEntry): void {
@@ -235,11 +243,13 @@ function getSelectedMeetingTranscript(): LiveTranscriptEntry[] {
 			const meetings = result.meetings || [];
 			const meeting = meetings[selectedMeetingIndex!];
 			if (meeting?.transcript) {
-				resolve(meeting.transcript.map((t) => ({
-					personName: t.personName,
-					timestamp: t.timestamp,
-					transcriptText: t.transcriptText,
-				})));
+				resolve(
+					meeting.transcript.map((t) => ({
+						personName: t.personName,
+						timestamp: t.timestamp,
+						transcriptText: t.transcriptText,
+					}))
+				);
 			} else {
 				resolve([]);
 			}
@@ -254,10 +264,7 @@ function filterEntries(entries: LiveTranscriptEntry[]): LiveTranscriptEntry[] {
 
 function matchesSearch(entry: LiveTranscriptEntry): boolean {
 	const query = searchQuery.toLowerCase();
-	return (
-		entry.personName.toLowerCase().includes(query) ||
-		entry.transcriptText.toLowerCase().includes(query)
-	);
+	return entry.personName.toLowerCase().includes(query) || entry.transcriptText.toLowerCase().includes(query);
 }
 
 function highlightSearch(text: string): string {
@@ -327,7 +334,7 @@ function createMeetingItem(meeting: Meeting, index: number): HTMLElement {
 			<div class="meeting-date">${dateStr}</div>
 		</div>
 		<div class="meeting-actions">
-			<button class="meeting-action webhook" title="Post to Webhook">
+			<button class="meeting-action webhook" title="Post to Webhooks">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
 					<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
@@ -397,11 +404,13 @@ function selectMeeting(index: number, meeting: Meeting): void {
 					emptyState.style.display = "flex";
 					container.appendChild(emptyState);
 				}
+				updateActionButtons(false);
 				return;
 			}
 
 			if (emptyState) emptyState.style.display = "none";
 			container.innerHTML = entries.map((e) => createTranscriptEntryHTML(e)).join("");
+			updateActionButtons(true);
 		}
 	});
 }
@@ -472,31 +481,39 @@ function getDuration(start: string, end: string): string {
 }
 
 function loadSettings(): void {
-	chrome.storage.sync.get(["webhookUrl", "autoPostWebhookAfterMeeting", "webhookBodyType", "operationMode"], (result: ResultSync) => {
-		const webhookInput = document.getElementById("webhook-url") as HTMLInputElement;
-		const quickWebhookInput = document.getElementById("quick-webhook-url") as HTMLInputElement;
-		const quickSetup = document.getElementById("quick-setup");
-		const autoPostCheckbox = document.getElementById("auto-post-webhook") as HTMLInputElement;
-		const simpleRadio = document.querySelector('input[name="webhook-body"][value="simple"]') as HTMLInputElement;
-		const advancedRadio = document.querySelector('input[name="webhook-body"][value="advanced"]') as HTMLInputElement;
-		const autoModeRadio = document.querySelector('input[name="operation-mode"][value="auto"]') as HTMLInputElement;
-		const manualModeRadio = document.querySelector('input[name="operation-mode"][value="manual"]') as HTMLInputElement;
+	chrome.storage.sync.get(
+		["webhookUrl", "webhookUrls", "autoPostWebhookAfterMeeting", "webhookBodyType", "operationMode"],
+		(result: ResultSync) => {
+			const webhookInput = document.getElementById("webhook-url") as HTMLInputElement;
+			const quickWebhookInput = document.getElementById("quick-webhook-url") as HTMLInputElement;
+			const quickSetup = document.getElementById("quick-setup");
+			const autoPostCheckbox = document.getElementById("auto-post-webhook") as HTMLInputElement;
+			const simpleRadio = document.querySelector('input[name="webhook-body"][value="simple"]') as HTMLInputElement;
+			const advancedRadio = document.querySelector('input[name="webhook-body"][value="advanced"]') as HTMLInputElement;
+			const autoModeRadio = document.querySelector('input[name="operation-mode"][value="auto"]') as HTMLInputElement;
+			const manualModeRadio = document.querySelector('input[name="operation-mode"][value="manual"]') as HTMLInputElement;
 
-		if (webhookInput && result.webhookUrl) webhookInput.value = result.webhookUrl;
-		if (quickWebhookInput && result.webhookUrl) quickWebhookInput.value = result.webhookUrl;
-		if (quickSetup) quickSetup.classList.toggle("hidden", !!result.webhookUrl);
-		if (autoPostCheckbox) autoPostCheckbox.checked = result.autoPostWebhookAfterMeeting ?? true;
-		if (result.webhookBodyType === "advanced") {
-			if (advancedRadio) advancedRadio.checked = true;
-		} else {
-			if (simpleRadio) simpleRadio.checked = true;
+			if (webhookInput && result.webhookUrl) webhookInput.value = result.webhookUrl;
+			if (quickWebhookInput && result.webhookUrl) quickWebhookInput.value = result.webhookUrl;
+			if (quickSetup) quickSetup.classList.toggle("hidden", !!result.webhookUrl);
+			if (autoPostCheckbox) autoPostCheckbox.checked = result.autoPostWebhookAfterMeeting ?? true;
+			if (result.webhookBodyType === "advanced") {
+				if (advancedRadio) advancedRadio.checked = true;
+			} else {
+				if (simpleRadio) simpleRadio.checked = true;
+			}
+
+			// Render additional webhooks
+			const additionalUrls = result.webhookUrls || [];
+			renderAdditionalWebhooks(additionalUrls);
+
+			if (result.operationMode === "manual") {
+				if (manualModeRadio) manualModeRadio.checked = true;
+			} else {
+				if (autoModeRadio) autoModeRadio.checked = true;
+			}
 		}
-		if (result.operationMode === "manual") {
-			if (manualModeRadio) manualModeRadio.checked = true;
-		} else {
-			if (autoModeRadio) autoModeRadio.checked = true;
-		}
-	});
+	);
 }
 
 function setupEventListeners(): void {
@@ -513,6 +530,7 @@ function setupEventListeners(): void {
 	const exportJson = document.getElementById("export-json");
 	const saveWebhook = document.getElementById("save-webhook");
 	const quickSaveWebhook = document.getElementById("quick-save-webhook");
+	const addWebhookBtn = document.getElementById("add-webhook-btn");
 	const autoPostCheckbox = document.getElementById("auto-post-webhook") as HTMLInputElement;
 	const webhookBodyRadios = document.querySelectorAll('input[name="webhook-body"]');
 	const operationModeRadios = document.querySelectorAll('input[name="operation-mode"]');
@@ -581,6 +599,7 @@ function setupEventListeners(): void {
 
 	saveWebhook?.addEventListener("click", () => saveWebhookUrl("webhook-url"));
 	quickSaveWebhook?.addEventListener("click", () => saveWebhookUrl("quick-webhook-url"));
+	addWebhookBtn?.addEventListener("click", () => addWebhook());
 
 	autoPostCheckbox?.addEventListener("change", () => {
 		chrome.storage.sync.set({ autoPostWebhookAfterMeeting: autoPostCheckbox.checked });
@@ -630,16 +649,12 @@ function exportAsText(): void {
 		const title = titleEl?.textContent || "live_transcript";
 		const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 		const timestamp = new Date().toISOString().slice(0, 10);
-		const text = entries
-			.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`)
-			.join("\n\n");
+		const text = entries.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`).join("\n\n");
 		downloadFile(text, `${sanitizedTitle}_${timestamp}.txt`, "text/plain");
 		return;
 	}
 
-	const text = entries
-		.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`)
-		.join("\n\n");
+	const text = entries.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`).join("\n\n");
 	downloadFile(text, "transcript.txt", "text/plain");
 }
 
@@ -735,26 +750,86 @@ function postToWebhook(): void {
 	}
 }
 
+function renderAdditionalWebhooks(urls: string[]): void {
+	const container = document.getElementById("additional-webhooks-list");
+	if (!container) return;
+
+	container.innerHTML = urls
+		.map(
+			(url, index) => `
+		<div class="webhook-item" data-index="${index}">
+			<input type="url" class="form-input" value="${escapeHtml(url)}" placeholder="https://api.example.com/webhook" />
+			<button class="btn-remove" title="Remove">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+					<line x1="18" y1="6" x2="6" y2="18"/>
+					<line x1="6" y1="6" x2="18" y2="18"/>
+				</svg>
+			</button>
+		</div>
+	`
+		)
+		.join("");
+
+	// Add event listeners to remove buttons
+	container.querySelectorAll(".btn-remove").forEach((btn, index) => {
+		btn.addEventListener("click", () => removeWebhook(index));
+	});
+}
+
+function addWebhook(): void {
+	chrome.storage.sync.get(["webhookUrls"], (result: ResultSync) => {
+		const webhookUrls = result.webhookUrls || [];
+		webhookUrls.push("");
+		chrome.storage.sync.set({ webhookUrls }, () => {
+			renderAdditionalWebhooks(webhookUrls);
+		});
+	});
+}
+
+function removeWebhook(index: number): void {
+	chrome.storage.sync.get(["webhookUrls"], (result: ResultSync) => {
+		const webhookUrls = result.webhookUrls || [];
+		webhookUrls.splice(index, 1);
+		chrome.storage.sync.set({ webhookUrls }, () => {
+			renderAdditionalWebhooks(webhookUrls);
+			showToast("Webhook removed", "success");
+		});
+	});
+}
+
 function saveWebhookUrl(inputId: string): void {
 	const webhookInput = document.getElementById(inputId) as HTMLInputElement;
-	const url = webhookInput?.value;
+	const primaryUrl = webhookInput?.value;
 
-	if (!url) {
-		chrome.storage.sync.set({ webhookUrl: "" }, () => {
-			showToast("Webhook cleared", "success");
+	// Collect additional webhook URLs
+	const additionalInputs = document.querySelectorAll("#additional-webhooks-list .webhook-item input") as NodeListOf<HTMLInputElement>;
+	const additionalUrls = Array.from(additionalInputs)
+		.map((input) => input.value.trim())
+		.filter((url) => url);
+
+	if (!primaryUrl && additionalUrls.length === 0) {
+		chrome.storage.sync.set({ webhookUrl: "", webhookUrls: [] }, () => {
+			showToast("All webhooks cleared", "success");
 			loadSettings();
 		});
 		return;
 	}
 
-	try {
-		const urlObj = new URL(url);
-		const originPattern = `${urlObj.protocol}//${urlObj.hostname}/*`;
+	const allUrls = [primaryUrl, ...additionalUrls].filter((url) => url);
+	const originPatterns = new Set<string>();
 
-		chrome.permissions.request({ origins: [originPattern], permissions: ["notifications"] }, (granted) => {
+	try {
+		// Validate all URLs and collect origin patterns
+		for (const url of allUrls) {
+			const urlObj = new URL(url);
+			originPatterns.add(`${urlObj.protocol}//${urlObj.hostname}/*`);
+		}
+
+		// Request permissions for all origins
+		chrome.permissions.request({ origins: Array.from(originPatterns), permissions: ["notifications"] }, (granted) => {
 			if (granted) {
-				chrome.storage.sync.set({ webhookUrl: url }, () => {
-					showToast("Webhook saved", "success");
+				chrome.storage.sync.set({ webhookUrl: primaryUrl || "", webhookUrls: additionalUrls }, () => {
+					showToast(`${allUrls.length} webhook(s) saved`, "success");
 					loadSettings();
 				});
 			} else {
@@ -762,7 +837,7 @@ function saveWebhookUrl(inputId: string): void {
 			}
 		});
 	} catch {
-		showToast("Invalid URL", "error");
+		showToast("Invalid URL format", "error");
 	}
 }
 

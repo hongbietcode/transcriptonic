@@ -497,10 +497,19 @@ function postTranscriptToWebhook(index: number): Promise<string> {
 		// Get webhook URL and meetings
 		chrome.storage.local.get(["meetings"], function (resultLocalUntyped) {
 			const resultLocal = resultLocalUntyped as ResultLocal;
-			chrome.storage.sync.get(["webhookUrl", "webhookBodyType"], function (resultSyncUntyped) {
+			chrome.storage.sync.get(["webhookUrl", "webhookUrls", "webhookBodyType"], function (resultSyncUntyped) {
 				const resultSync = resultSyncUntyped as ResultSync;
 
+				// Collect all webhook URLs
+				const webhookUrls: string[] = [];
 				if (resultSync.webhookUrl) {
+					webhookUrls.push(resultSync.webhookUrl);
+				}
+				if (resultSync.webhookUrls && Array.isArray(resultSync.webhookUrls)) {
+					webhookUrls.push(...resultSync.webhookUrls.filter((url) => url && url.trim()));
+				}
+
+				if (webhookUrls.length > 0) {
 					if (resultLocal.meetings && resultLocal.meetings[index]) {
 						const meeting = resultLocal.meetings[index];
 
@@ -527,48 +536,71 @@ function postTranscriptToWebhook(index: number): Promise<string> {
 							};
 						}
 
-						// Post to webhook
-						fetch(resultSync.webhookUrl, {
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							body: JSON.stringify(webhookData),
-						})
-							.then((response) => {
+						// Post to all webhooks in parallel
+						const webhookPromises = webhookUrls.map((url) =>
+							fetch(url, {
+								method: "POST",
+								headers: {
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify(webhookData),
+							}).then((response) => {
 								if (!response.ok) {
-									throw new Error(`Webhook request failed with HTTP status code ${response.status} ${response.statusText}`);
+									throw new Error(`Webhook ${url} failed with HTTP ${response.status} ${response.statusText}`);
 								}
+								return url;
 							})
-							.then(() => {
-								// Update success status.
-								resultLocal.meetings![index].webhookPostStatus = "successful";
-								chrome.storage.local.set({ meetings: resultLocal.meetings }, function () {
-									resolve("Webhook posted successfully");
-								});
+						);
+
+						Promise.allSettled(webhookPromises)
+							.then((results) => {
+								const successCount = results.filter((r) => r.status === "fulfilled").length;
+								const failedCount = results.filter((r) => r.status === "rejected").length;
+
+								if (successCount > 0) {
+									// At least one webhook succeeded
+									resultLocal.meetings![index].webhookPostStatus = "successful";
+									chrome.storage.local.set({ meetings: resultLocal.meetings }, function () {
+										if (failedCount > 0) {
+											resolve(`${successCount}/${webhookUrls.length} webhooks posted successfully`);
+										} else {
+											resolve(`All ${successCount} webhooks posted successfully`);
+										}
+									});
+								} else {
+									// All webhooks failed
+									resultLocal.meetings![index].webhookPostStatus = "failed";
+									chrome.storage.local.set({ meetings: resultLocal.meetings }, function () {
+										const errors = results
+											.filter((r): r is PromiseRejectedResult => r.status === "rejected")
+											.map((r) => r.reason)
+											.join("; ");
+
+										// Create notification and open webhooks page
+										chrome.notifications.create(
+											{
+												type: "basic",
+												iconUrl: "icon.png",
+												title: "Could not post webhook!",
+												message: "Click to view status and retry. Check console for more details.",
+											},
+											function (notificationId) {
+												// Handle notification click
+												chrome.notifications.onClicked.addListener(function (clickedNotificationId) {
+													if (clickedNotificationId === notificationId) {
+														chrome.tabs.create({ url: "dashboard.html" });
+													}
+												});
+											}
+										);
+										reject({ errorCode: "011", errorMessage: errors });
+									});
+								}
 							})
 							.catch((error) => {
 								console.error(error);
-								// Update failure status.
 								resultLocal.meetings![index].webhookPostStatus = "failed";
 								chrome.storage.local.set({ meetings: resultLocal.meetings }, function () {
-									// Create notification and open webhooks page
-									chrome.notifications.create(
-										{
-											type: "basic",
-											iconUrl: "icon.png",
-											title: "Could not post webhook!",
-											message: "Click to view status and retry. Check console for more details.",
-										},
-										function (notificationId) {
-											// Handle notification click
-											chrome.notifications.onClicked.addListener(function (clickedNotificationId) {
-												if (clickedNotificationId === notificationId) {
-													chrome.tabs.create({ url: "meetings.html" });
-												}
-											});
-										}
-									);
 									reject({ errorCode: "011", errorMessage: error });
 								});
 							});
