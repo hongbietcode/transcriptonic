@@ -734,7 +734,7 @@ function meetsMinVersion(oldVer: string, newVer: string): boolean {
 function checkExtensionStatus(): Promise<string> {
 	return new Promise((resolve, reject) => {
 		// Set default value as 200
-		extensionStatusJSON = { status: 200, message: "CC Capture is active • Keep captions enabled" };
+		extensionStatusJSON = { status: 200, message: "Recording transcript • Keep captions on" };
 
 		// https://stackoverflow.com/a/42518434
 		fetch("https://raw.githubusercontent.com/hongbietcode/transcriptonic/refs/heads/main/docs/status.json", { cache: "no-store" })
@@ -745,7 +745,7 @@ function checkExtensionStatus(): Promise<string> {
 				// Disable extension if version is below the min version
 				if (!meetsMinVersion(chrome.runtime.getManifest().version, minVersion)) {
 					extensionStatusJSON.status = 400;
-					extensionStatusJSON.message = `Update required to v${minVersion} • <a href="https://github.com/hongbietcode/transcriptonic/wiki/Manually-update-TranscripTonic" target="_blank" style="color: white; text-decoration: underline;">Update now</a>`;
+					extensionStatusJSON.message = `Update to v${minVersion} required • <a href="https://github.com/hongbietcode/transcriptonic/wiki/Manually-update-TranscripTonic" target="_blank" style="color: white; text-decoration: underline;">Click to update</a>`;
 				} else {
 					// Update status based on response
 					extensionStatusJSON.status = result.status;
