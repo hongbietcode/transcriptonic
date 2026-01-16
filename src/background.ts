@@ -8,7 +8,71 @@ import type {
 	TranscriptBlock,
 	ChatMessage,
 	WebhookBody,
+	StreamingMessage,
+	PortMessage,
 } from "./types/index";
+
+const contentPorts: Set<chrome.runtime.Port> = new Set();
+const meetingsPagePorts: Set<chrome.runtime.Port> = new Set();
+
+let currentMeetingState: {
+	isActive: boolean;
+	info: StreamingMessage | null;
+	transcript: StreamingMessage[];
+} = { isActive: false, info: null, transcript: [] };
+
+chrome.runtime.onConnect.addListener((port) => {
+	if (port.name === "transcript-stream") {
+		port.onMessage.addListener((msg: PortMessage) => {
+			if (msg.type === "subscribe") {
+				if (msg.source === "content") {
+					contentPorts.add(port);
+				} else if (msg.source === "meetings_page") {
+					meetingsPagePorts.add(port);
+					if (currentMeetingState.isActive) {
+						port.postMessage({ type: "meeting_started" });
+						if (currentMeetingState.info) {
+							port.postMessage(currentMeetingState.info);
+						}
+						currentMeetingState.transcript.forEach((entry) => port.postMessage(entry));
+					}
+				}
+			}
+		});
+
+		port.onDisconnect.addListener(() => {
+			contentPorts.delete(port);
+			meetingsPagePorts.delete(port);
+		});
+	}
+});
+
+function broadcastToMeetingsPages(message: StreamingMessage): void {
+	meetingsPagePorts.forEach((port) => {
+		try {
+			port.postMessage(message);
+		} catch {
+			meetingsPagePorts.delete(port);
+		}
+	});
+}
+
+chrome.runtime.onMessage.addListener((msg: StreamingMessage, _sender, _sendResponse) => {
+	if (msg.type === "meeting_started") {
+		currentMeetingState = { isActive: true, info: null, transcript: [] };
+	} else if (msg.type === "meeting_info") {
+		currentMeetingState.info = msg;
+	} else if (msg.type === "transcript_entry") {
+		currentMeetingState.transcript.push(msg);
+	} else if (msg.type === "meeting_ended") {
+		currentMeetingState = { isActive: false, info: null, transcript: [] };
+	}
+
+	if (msg.type === "transcript_entry" || msg.type === "meeting_info" || msg.type === "meeting_started" || msg.type === "meeting_ended") {
+		broadcastToMeetingsPages(msg);
+	}
+	return false;
+});
 
 const timeFormat: Intl.DateTimeFormatOptions = {
 	year: "numeric",

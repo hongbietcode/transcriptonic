@@ -1,363 +1,608 @@
-import type { ExtensionMessage, ResultSync, ExtensionResponse, ErrorObject, ResultLocal, Meeting } from "./types/index";
+import type {
+	ExtensionMessage,
+	ResultSync,
+	ExtensionResponse,
+	ResultLocal,
+	Meeting,
+	StreamingMessage,
+	TranscriptBlock,
+	MeetingInfo,
+	PortMessage,
+} from "./types/index";
 
-let isMeetingsTableExpanded = false;
+interface LiveTranscriptEntry {
+	personName: string;
+	timestamp: string;
+	transcriptText: string;
+}
 
-document.addEventListener("DOMContentLoaded", function () {
-	const webhookUrlForm = document.querySelector("#webhook-url-form") as HTMLFormElement | null;
-	const webhookUrlInput = document.querySelector("#webhook-url") as HTMLInputElement | null;
-	const saveButton = document.querySelector("#save-webhook") as HTMLButtonElement | null;
-	const autoPostCheckbox = document.querySelector("#auto-post-webhook") as HTMLInputElement | null;
-	const simpleWebhookBodyRadio = document.querySelector("#simple-webhook-body") as HTMLInputElement | null;
-	const advancedWebhookBodyRadio = document.querySelector("#advanced-webhook-body") as HTMLInputElement | null;
-	const recoverLastMeetingButton = document.querySelector("#recover-last-meeting") as HTMLButtonElement | null;
-	const showAllButton = document.querySelector("#show-all") as HTMLButtonElement | null;
+let currentView: "live" | "history" = "live";
+let selectedMeetingIndex: number | null = null;
+let liveTranscript: LiveTranscriptEntry[] = [];
+let isLive = false;
+let searchQuery = "";
+let port: chrome.runtime.Port | null = null;
 
-	// Initial load of transcripts
-	loadMeetings();
+const timeFormat: Intl.DateTimeFormatOptions = {
+	hour: "2-digit",
+	minute: "2-digit",
+	hour12: false,
+};
 
-	// Reload transcripts when page becomes visible
-	document.addEventListener("visibilitychange", function () {
-		if (document.visibilityState === "visible") {
-			loadMeetings();
+document.addEventListener("DOMContentLoaded", () => {
+	initializePort();
+	loadSettings();
+	loadMeetingsHistory();
+	setupEventListeners();
+	setVersion();
+});
+
+function initializePort(): void {
+	port = chrome.runtime.connect({ name: "transcript-stream" });
+	port.postMessage({ type: "subscribe", source: "meetings_page" } as PortMessage);
+
+	port.onMessage.addListener((msg: StreamingMessage) => {
+		switch (msg.type) {
+			case "meeting_started":
+				handleMeetingStarted();
+				break;
+			case "meeting_info":
+				handleMeetingInfo(msg.data as MeetingInfo);
+				break;
+			case "transcript_entry":
+				handleTranscriptEntry(msg.data as TranscriptBlock);
+				break;
+			case "meeting_ended":
+				handleMeetingEnded();
+				break;
 		}
+	});
+
+	port.onDisconnect.addListener(() => {
+		setTimeout(initializePort, 1000);
+	});
+}
+
+function handleMeetingStarted(): void {
+	isLive = true;
+	liveTranscript = [];
+	currentView = "live";
+	updateStatusIndicator(true);
+	updateNavigation();
+	renderTranscript();
+}
+
+function handleMeetingInfo(info: MeetingInfo): void {
+	const titleEl = document.getElementById("meeting-title");
+	const softwareEl = document.getElementById("meeting-software");
+	const timeEl = document.getElementById("meeting-time");
+
+	if (titleEl) titleEl.textContent = info.meetingTitle || "Active Meeting";
+	if (softwareEl) softwareEl.textContent = info.meetingSoftware || "—";
+	if (timeEl) timeEl.textContent = new Date(info.meetingStartTimestamp).toLocaleTimeString("en-US", timeFormat);
+}
+
+function handleTranscriptEntry(entry: TranscriptBlock): void {
+	liveTranscript.push({
+		personName: entry.personName,
+		timestamp: entry.timestamp,
+		transcriptText: entry.transcriptText,
+	});
+
+	if (currentView === "live") {
+		appendTranscriptEntry(entry);
+	}
+}
+
+function handleMeetingEnded(): void {
+	isLive = false;
+	updateStatusIndicator(false);
+	loadMeetingsHistory();
+}
+
+function updateStatusIndicator(live: boolean): void {
+	const indicator = document.getElementById("status-indicator");
+	if (!indicator) return;
+
+	if (live) {
+		indicator.className = "status-indicator live";
+		indicator.innerHTML = "<span>Live</span>";
+	} else {
+		indicator.className = "status-indicator offline";
+		indicator.innerHTML = "<span>Offline</span>";
+	}
+}
+
+function updateNavigation(): void {
+	const navLive = document.getElementById("nav-live");
+	const meetingItems = document.querySelectorAll(".meeting-item");
+
+	navLive?.classList.toggle("active", currentView === "live");
+	meetingItems.forEach((item) => {
+		const index = parseInt(item.getAttribute("data-index") || "-1");
+		item.classList.toggle("active", currentView === "history" && index === selectedMeetingIndex);
+	});
+}
+
+function renderTranscript(): void {
+	const container = document.getElementById("transcript-list");
+	const emptyState = document.getElementById("empty-state");
+	if (!container) return;
+
+	const entries = currentView === "live" ? liveTranscript : getSelectedMeetingTranscript();
+	const filteredEntries = filterEntries(entries);
+
+	if (filteredEntries.length === 0) {
+		container.innerHTML = "";
+		if (emptyState) {
+			emptyState.style.display = "flex";
+			container.appendChild(emptyState);
+		}
+		return;
+	}
+
+	if (emptyState) emptyState.style.display = "none";
+
+	container.innerHTML = filteredEntries
+		.map((entry) => createTranscriptEntryHTML(entry))
+		.join("");
+
+	container.scrollTop = container.scrollHeight;
+}
+
+function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
+	const container = document.getElementById("transcript-list");
+	const emptyState = document.getElementById("empty-state");
+	if (!container) return;
+
+	if (emptyState) emptyState.style.display = "none";
+
+	if (searchQuery && !matchesSearch(entry)) return;
+
+	const div = document.createElement("div");
+	div.innerHTML = createTranscriptEntryHTML(entry);
+	container.appendChild(div.firstElementChild!);
+	container.scrollTop = container.scrollHeight;
+}
+
+function createTranscriptEntryHTML(entry: LiveTranscriptEntry): string {
+	const initials = getInitials(entry.personName);
+	const time = new Date(entry.timestamp).toLocaleTimeString("en-US", timeFormat);
+	const text = highlightSearch(escapeHtml(entry.transcriptText));
+
+	return `
+		<div class="transcript-entry">
+			<div class="speaker-avatar">${initials}</div>
+			<div class="transcript-content">
+				<div class="transcript-header">
+					<span class="speaker-name">${escapeHtml(entry.personName)}</span>
+					<span class="transcript-time">${time}</span>
+				</div>
+				<div class="transcript-text">${text}</div>
+			</div>
+		</div>
+	`;
+}
+
+function getSelectedMeetingTranscript(): LiveTranscriptEntry[] {
+	if (selectedMeetingIndex === null) return [];
+
+	return new Promise<LiveTranscriptEntry[]>((resolve) => {
+		chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+			const meetings = result.meetings || [];
+			const meeting = meetings[selectedMeetingIndex!];
+			if (meeting?.transcript) {
+				resolve(meeting.transcript.map((t) => ({
+					personName: t.personName,
+					timestamp: t.timestamp,
+					transcriptText: t.transcriptText,
+				})));
+			} else {
+				resolve([]);
+			}
+		});
+	}) as unknown as LiveTranscriptEntry[];
+}
+
+function filterEntries(entries: LiveTranscriptEntry[]): LiveTranscriptEntry[] {
+	if (!searchQuery) return entries;
+	return entries.filter(matchesSearch);
+}
+
+function matchesSearch(entry: LiveTranscriptEntry): boolean {
+	const query = searchQuery.toLowerCase();
+	return (
+		entry.personName.toLowerCase().includes(query) ||
+		entry.transcriptText.toLowerCase().includes(query)
+	);
+}
+
+function highlightSearch(text: string): string {
+	if (!searchQuery) return text;
+	const regex = new RegExp(`(${escapeRegex(searchQuery)})`, "gi");
+	return text.replace(regex, "<mark>$1</mark>");
+}
+
+function getInitials(name: string): string {
+	return name
+		.split(" ")
+		.map((n) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}
+
+function escapeHtml(text: string): string {
+	const div = document.createElement("div");
+	div.textContent = text;
+	return div.innerHTML;
+}
+
+function escapeRegex(str: string): string {
+	return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function loadMeetingsHistory(): void {
+	const listContainer = document.getElementById("meetings-list");
+	if (!listContainer) return;
+
+	chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+		const meetings = result.meetings || [];
+		listContainer.innerHTML = "";
+
+		if (meetings.length === 0) {
+			listContainer.innerHTML = `<div style="padding: 12px; color: var(--text-muted); font-size: 13px;">No meetings yet</div>`;
+			return;
+		}
+
+		for (let i = meetings.length - 1; i >= 0; i--) {
+			const meeting = meetings[i];
+			const item = createMeetingItem(meeting, i);
+			listContainer.appendChild(item);
+		}
+	});
+}
+
+function createMeetingItem(meeting: Meeting, index: number): HTMLElement {
+	const div = document.createElement("div");
+	div.className = "meeting-item";
+	div.setAttribute("data-index", String(index));
+
+	const date = new Date(meeting.meetingStartTimestamp);
+	const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+	const title = meeting.meetingTitle || meeting.title || "Meeting";
+
+	div.innerHTML = `
+		<div class="meeting-icon">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+				<polyline points="14 2 14 8 20 8"/>
+			</svg>
+		</div>
+		<div class="meeting-details">
+			<div class="meeting-name">${escapeHtml(title)}</div>
+			<div class="meeting-date">${dateStr}</div>
+		</div>
+		<div class="meeting-actions">
+			<button class="meeting-action download" title="Download">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+					<polyline points="7 10 12 15 17 10"/>
+					<line x1="12" y1="15" x2="12" y2="3"/>
+				</svg>
+			</button>
+			<button class="meeting-action delete" title="Delete">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<polyline points="3 6 5 6 21 6"/>
+					<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+				</svg>
+			</button>
+		</div>
+	`;
+
+	div.addEventListener("click", (e) => {
+		if ((e.target as HTMLElement).closest(".meeting-action")) return;
+		selectMeeting(index, meeting);
+	});
+
+	div.querySelector(".download")?.addEventListener("click", () => downloadMeeting(index));
+	div.querySelector(".delete")?.addEventListener("click", () => deleteMeeting(index));
+
+	return div;
+}
+
+function selectMeeting(index: number, meeting: Meeting): void {
+	currentView = "history";
+	selectedMeetingIndex = index;
+	updateNavigation();
+
+	const titleEl = document.getElementById("meeting-title");
+	const softwareEl = document.getElementById("meeting-software");
+	const timeEl = document.getElementById("meeting-time");
+
+	if (titleEl) titleEl.textContent = meeting.meetingTitle || meeting.title || "Meeting";
+	if (softwareEl) softwareEl.textContent = meeting.meetingSoftware || "—";
+	if (timeEl) {
+		const duration = getDuration(meeting.meetingStartTimestamp, meeting.meetingEndTimestamp);
+		timeEl.textContent = duration;
+	}
+
+	chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+		const meetings = result.meetings || [];
+		const selectedMeeting = meetings[index];
+		if (selectedMeeting?.transcript) {
+			const container = document.getElementById("transcript-list");
+			const emptyState = document.getElementById("empty-state");
+			if (!container) return;
+
+			const entries = selectedMeeting.transcript.map((t) => ({
+				personName: t.personName,
+				timestamp: t.timestamp,
+				transcriptText: t.transcriptText,
+			}));
+
+			if (entries.length === 0) {
+				container.innerHTML = "";
+				if (emptyState) {
+					emptyState.style.display = "flex";
+					container.appendChild(emptyState);
+				}
+				return;
+			}
+
+			if (emptyState) emptyState.style.display = "none";
+			container.innerHTML = entries.map((e) => createTranscriptEntryHTML(e)).join("");
+		}
+	});
+}
+
+function downloadMeeting(index: number): void {
+	chrome.runtime.sendMessage({ type: "download_transcript_at_index", index } as ExtensionMessage, (response: ExtensionResponse) => {
+		if (response.success) {
+			showToast("Transcript downloaded", "success");
+		} else {
+			showToast("Failed to download", "error");
+		}
+	});
+}
+
+function deleteMeeting(index: number): void {
+	if (!confirm("Delete this meeting?")) return;
+
+	chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+		const meetings = result.meetings || [];
+		meetings.splice(index, 1);
+		chrome.storage.local.set({ meetings }, () => {
+			loadMeetingsHistory();
+			if (selectedMeetingIndex === index) {
+				currentView = "live";
+				selectedMeetingIndex = null;
+				updateNavigation();
+				renderTranscript();
+			}
+			showToast("Meeting deleted", "success");
+		});
+	});
+}
+
+function getDuration(start: string, end: string): string {
+	const duration = new Date(end).getTime() - new Date(start).getTime();
+	const minutes = Math.round(duration / (1000 * 60));
+	const hours = Math.floor(minutes / 60);
+	const remaining = minutes % 60;
+	return hours > 0 ? `${hours}h ${remaining}m` : `${minutes}m`;
+}
+
+function loadSettings(): void {
+	chrome.storage.sync.get(["webhookUrl", "autoPostWebhookAfterMeeting", "webhookBodyType", "operationMode"], (result: ResultSync) => {
+		const webhookInput = document.getElementById("webhook-url") as HTMLInputElement;
+		const quickWebhookInput = document.getElementById("quick-webhook-url") as HTMLInputElement;
+		const quickSetup = document.getElementById("quick-setup");
+		const autoPostCheckbox = document.getElementById("auto-post-webhook") as HTMLInputElement;
+		const simpleRadio = document.querySelector('input[name="webhook-body"][value="simple"]') as HTMLInputElement;
+		const advancedRadio = document.querySelector('input[name="webhook-body"][value="advanced"]') as HTMLInputElement;
+		const autoModeRadio = document.querySelector('input[name="operation-mode"][value="auto"]') as HTMLInputElement;
+		const manualModeRadio = document.querySelector('input[name="operation-mode"][value="manual"]') as HTMLInputElement;
+
+		if (webhookInput && result.webhookUrl) webhookInput.value = result.webhookUrl;
+		if (quickWebhookInput && result.webhookUrl) quickWebhookInput.value = result.webhookUrl;
+		if (quickSetup) quickSetup.classList.toggle("hidden", !!result.webhookUrl);
+		if (autoPostCheckbox) autoPostCheckbox.checked = result.autoPostWebhookAfterMeeting ?? true;
+		if (result.webhookBodyType === "advanced") {
+			if (advancedRadio) advancedRadio.checked = true;
+		} else {
+			if (simpleRadio) simpleRadio.checked = true;
+		}
+		if (result.operationMode === "manual") {
+			if (manualModeRadio) manualModeRadio.checked = true;
+		} else {
+			if (autoModeRadio) autoModeRadio.checked = true;
+		}
+	});
+}
+
+function setupEventListeners(): void {
+	const navLive = document.getElementById("nav-live");
+	const searchInput = document.getElementById("search-input") as HTMLInputElement;
+	const settingsBtn = document.getElementById("settings-btn");
+	const settingsClose = document.getElementById("settings-close");
+	const settingsPanel = document.getElementById("settings-panel");
+	const exportBtn = document.getElementById("export-btn");
+	const exportMenu = document.getElementById("export-menu");
+	const exportTxt = document.getElementById("export-txt");
+	const exportJson = document.getElementById("export-json");
+	const saveWebhook = document.getElementById("save-webhook");
+	const quickSaveWebhook = document.getElementById("quick-save-webhook");
+	const autoPostCheckbox = document.getElementById("auto-post-webhook") as HTMLInputElement;
+	const webhookBodyRadios = document.querySelectorAll('input[name="webhook-body"]');
+	const operationModeRadios = document.querySelectorAll('input[name="operation-mode"]');
+
+	navLive?.addEventListener("click", () => {
+		currentView = "live";
+		selectedMeetingIndex = null;
+		updateNavigation();
+
+		const titleEl = document.getElementById("meeting-title");
+		const softwareEl = document.getElementById("meeting-software");
+		const timeEl = document.getElementById("meeting-time");
+
+		if (isLive) {
+			renderTranscript();
+		} else {
+			if (titleEl) titleEl.textContent = "No Active Meeting";
+			if (softwareEl) softwareEl.textContent = "—";
+			if (timeEl) timeEl.textContent = "—";
+			renderTranscript();
+		}
+	});
+
+	searchInput?.addEventListener("input", () => {
+		searchQuery = searchInput.value;
+		renderTranscript();
+	});
+
+	settingsBtn?.addEventListener("click", () => {
+		settingsPanel?.classList.toggle("visible");
+	});
+
+	settingsClose?.addEventListener("click", () => {
+		settingsPanel?.classList.remove("visible");
+	});
+
+	exportBtn?.addEventListener("click", () => {
+		exportMenu?.classList.toggle("visible");
+	});
+
+	document.addEventListener("click", (e) => {
+		if (!exportBtn?.contains(e.target as Node) && !exportMenu?.contains(e.target as Node)) {
+			exportMenu?.classList.remove("visible");
+		}
+	});
+
+	exportTxt?.addEventListener("click", () => exportAsText());
+	exportJson?.addEventListener("click", () => exportAsJson());
+
+	saveWebhook?.addEventListener("click", () => saveWebhookUrl("webhook-url"));
+	quickSaveWebhook?.addEventListener("click", () => saveWebhookUrl("quick-webhook-url"));
+
+	autoPostCheckbox?.addEventListener("change", () => {
+		chrome.storage.sync.set({ autoPostWebhookAfterMeeting: autoPostCheckbox.checked });
+	});
+
+	webhookBodyRadios.forEach((radio) => {
+		radio.addEventListener("change", () => {
+			const value = (radio as HTMLInputElement).value;
+			chrome.storage.sync.set({ webhookBodyType: value });
+		});
+	});
+
+	operationModeRadios.forEach((radio) => {
+		radio.addEventListener("change", () => {
+			const value = (radio as HTMLInputElement).value;
+			chrome.storage.sync.set({ operationMode: value });
+		});
 	});
 
 	chrome.storage.onChanged.addListener(() => {
-		loadMeetings();
+		loadMeetingsHistory();
 	});
+}
 
-	if (recoverLastMeetingButton) {
-		recoverLastMeetingButton.addEventListener("click", function () {
-			const message: ExtensionMessage = {
-				type: "recover_last_meeting",
-			};
-			chrome.runtime.sendMessage(message, function (responseUntyped) {
-				const response = responseUntyped as ExtensionResponse;
-				loadMeetings();
-				scrollTo({ top: 0, behavior: "smooth" });
-				if (response.success) {
-					if (response.message === "No recovery needed") {
-						alert("Nothing to recover—you're on top of the world!");
-					} else {
-						alert("Last meeting recovered successfully!");
-					}
-				} else {
-					const parsedError = response.message as ErrorObject;
-					if (parsedError.errorCode === "013") {
-						alert(parsedError.errorMessage);
-					} else if (parsedError.errorCode === "014") {
-						alert("Nothing to recover—you're on top of the world!");
-					} else {
-						alert("Could not recover last meeting!");
-						console.error(parsedError.errorMessage);
-					}
-				}
-			});
-		});
-	}
+function exportAsText(): void {
+	const entries = currentView === "live" ? liveTranscript : [];
 
-	if (saveButton && webhookUrlForm && webhookUrlInput && autoPostCheckbox && simpleWebhookBodyRadio && advancedWebhookBodyRadio) {
-		// Initially disable the save button
-		saveButton.disabled = true;
-
-		// Load saved webhook URL, auto-post setting, and webhook body type
-		chrome.storage.sync.get(["webhookUrl", "autoPostWebhookAfterMeeting", "webhookBodyType"], function (resultSyncUntyped) {
-			const resultSync = resultSyncUntyped as ResultSync;
-
-			if (resultSync.webhookUrl) {
-				webhookUrlInput.value = resultSync.webhookUrl;
-				saveButton.disabled = !webhookUrlInput.checkValidity();
-			}
-
-			// Set checkbox state
-			autoPostCheckbox.checked = resultSync.autoPostWebhookAfterMeeting ?? false;
-
-			// Set radio button state
-			if (resultSync.webhookBodyType === "advanced") {
-				advancedWebhookBodyRadio.checked = true;
-			} else {
-				simpleWebhookBodyRadio.checked = true;
+	if (currentView === "history" && selectedMeetingIndex !== null) {
+		chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+			const meetings = result.meetings || [];
+			const meeting = meetings[selectedMeetingIndex!];
+			if (meeting?.transcript) {
+				const text = meeting.transcript
+					.map((t) => `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.personName}: ${t.transcriptText}`)
+					.join("\n\n");
+				downloadFile(text, "transcript.txt", "text/plain");
 			}
 		});
+		return;
+	}
 
-		// Handle URL input changes
-		webhookUrlInput.addEventListener("input", function () {
-			saveButton.disabled = !webhookUrlInput.checkValidity();
-		});
+	const text = entries
+		.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`)
+		.join("\n\n");
+	downloadFile(text, "transcript.txt", "text/plain");
+}
 
-		// Save webhook URL, auto-post setting, and webhook body type
-		webhookUrlForm.addEventListener("submit", function (e) {
-			e.preventDefault();
-			const webhookUrl = webhookUrlInput.value;
-			if (webhookUrl === "") {
-				// Save webhook URL and settings
-				chrome.storage.sync.set(
-					{
-						webhookUrl: webhookUrl,
-					},
-					function () {
-						alert("Webhook URL saved!");
-					}
-				);
-			} else if (webhookUrl && webhookUrlInput.checkValidity()) {
-				// Request runtime permission for the webhook URL
-				requestWebhookAndNotificationPermission(webhookUrl)
-					.then(() => {
-						// Save webhook URL and settings
-						chrome.storage.sync.set(
-							{
-								webhookUrl: webhookUrl,
-							},
-							function () {
-								alert("Webhook URL saved!");
-							}
-						);
-					})
-					.catch((error) => {
-						alert("Fine! No webhooks for you!");
-						console.error("Webhook permission error:", error);
-					});
+function exportAsJson(): void {
+	if (currentView === "history" && selectedMeetingIndex !== null) {
+		chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+			const meetings = result.meetings || [];
+			const meeting = meetings[selectedMeetingIndex!];
+			if (meeting) {
+				downloadFile(JSON.stringify(meeting, null, 2), "transcript.json", "application/json");
 			}
 		});
-
-		// Auto save auto-post setting
-		autoPostCheckbox.addEventListener("change", function () {
-			// Save webhook URL and settings
-			chrome.storage.sync.set(
-				{
-					autoPostWebhookAfterMeeting: autoPostCheckbox.checked,
-				},
-				function () {}
-			);
-		});
-
-		// Auto save webhook body type
-		simpleWebhookBodyRadio.addEventListener("change", function () {
-			// Save webhook URL and settings
-			chrome.storage.sync.set({ webhookBodyType: "simple" }, function () {});
-		});
-
-		// Auto save webhook body type
-		advancedWebhookBodyRadio.addEventListener("change", function () {
-			// Save webhook URL and settings
-			chrome.storage.sync.set({ webhookBodyType: advancedWebhookBodyRadio.checked ? "advanced" : "simple" }, function () {});
-		});
+		return;
 	}
 
-	if (showAllButton) {
-		showAllButton.addEventListener("click", () => {
-			const meetingsTableContainer = document.querySelector("#meetings-table-container");
-			meetingsTableContainer?.classList.remove("fade-mask");
-			showAllButton.setAttribute("style", "display:none;");
-			isMeetingsTableExpanded = true;
+	const data = { transcript: liveTranscript };
+	downloadFile(JSON.stringify(data, null, 2), "transcript.json", "application/json");
+}
+
+function downloadFile(content: string, filename: string, type: string): void {
+	const blob = new Blob([content], { type });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = filename;
+	a.click();
+	URL.revokeObjectURL(url);
+}
+
+function saveWebhookUrl(inputId: string): void {
+	const webhookInput = document.getElementById(inputId) as HTMLInputElement;
+	const url = webhookInput?.value;
+
+	if (!url) {
+		chrome.storage.sync.set({ webhookUrl: "" }, () => {
+			showToast("Webhook cleared", "success");
+			loadSettings();
 		});
+		return;
 	}
-});
 
-// Request runtime permission for webhook URL
-function requestWebhookAndNotificationPermission(url: string): Promise<string> {
-	return new Promise((resolve, reject) => {
-		try {
-			const urlObj = new URL(url);
-			const originPattern = `${urlObj.protocol}//${urlObj.hostname}/*`;
+	try {
+		const urlObj = new URL(url);
+		const originPattern = `${urlObj.protocol}//${urlObj.hostname}/*`;
 
-			// Request both host and notifications permissions
-			chrome.permissions
-				.request({
-					origins: [originPattern],
-					permissions: ["notifications"],
-				})
-				.then((granted) => {
-					if (granted) {
-						resolve("Permission granted");
-					} else {
-						reject(new Error("Permission denied"));
-					}
-				})
-				.catch((error) => {
-					reject(error);
+		chrome.permissions.request({ origins: [originPattern], permissions: ["notifications"] }, (granted) => {
+			if (granted) {
+				chrome.storage.sync.set({ webhookUrl: url }, () => {
+					showToast("Webhook saved", "success");
+					loadSettings();
 				});
-		} catch (error) {
-			reject(error);
-		}
-	});
-}
-
-// Load and display recent transcripts
-function loadMeetings(): void {
-	const meetingsTable = document.querySelector("#meetings-table");
-
-	chrome.storage.local.get(["meetings"], function (resultLocalUntyped) {
-		const resultLocal = resultLocalUntyped as ResultLocal;
-		// Clear existing content
-		if (meetingsTable) {
-			meetingsTable.innerHTML = "";
-
-			if (resultLocal.meetings && resultLocal.meetings.length > 0) {
-				const meetings = resultLocal.meetings;
-				// Loop through the array in reverse order to list latest meeting first
-				for (let i = meetings.length - 1; i >= 0; i--) {
-					const meeting = meetings[i];
-					const timestamp = new Date(meeting.meetingStartTimestamp).toLocaleString();
-					const durationString = getDuration(meeting.meetingStartTimestamp, meeting.meetingEndTimestamp);
-
-					const row = document.createElement("tr");
-					row.innerHTML = `
-                    <td>
-                        <div contenteditable="true" class="meeting-title" data-index="${i}" title="Click to rename">
-                        ${meeting.meetingTitle || meeting.title || "Google Meet call"}
-                    </div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 500">${timestamp}</div>
-                        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">
-                            ${meeting.meetingSoftware ? meeting.meetingSoftware + " • " : ""}${durationString}
-                        </div>
-                    </td>
-                    <td>
-                        ${(() => {
-							switch (meeting.webhookPostStatus) {
-								case "successful":
-									return `<span class="status-badge status-success">Successful</span>`;
-								case "failed":
-									return `<span class="status-badge status-failed">Failed</span>`;
-								case "new":
-									return `<span class="status-badge status-new">New</span>`;
-								default:
-									return `<span class="status-badge status-new">Unknown</span>`;
-							}
-						})()}
-                    </td>
-                    <td>
-                        <div class="action-group">
-                            <button class="icon-btn download-button" data-index="${i}" title="Download Transcript">
-                                <img src="icons/download.svg" alt="Download">
-                            </button>
-                            <button class="icon-btn post-button" data-index="${i}" title="${
-						meeting.webhookPostStatus === "new" ? `Post to Webhook` : `Repost to Webhook`
-					}">
-                                <img src="icons/webhook.svg" alt="Webhook">
-                            </button>
-                             <button class="icon-btn delete-button delete" data-index="${i}" title="Delete Meeting">
-                                <img src="icons/delete.svg" alt="Delete">
-                            </button>
-                        </div>
-                    </td>
-                `;
-					meetingsTable.appendChild(row);
-
-					// Add event listener to meeting title input
-					const meetingTitleInput = row.querySelector(".meeting-title") as HTMLDivElement | null;
-					if (meetingTitleInput) {
-						meetingTitleInput.addEventListener("blur", function () {
-							const updatedMeeting: Meeting = {
-								...meeting,
-								meetingTitle: meetingTitleInput.innerText,
-							};
-							meetings[i] = updatedMeeting;
-							chrome.storage.local.set({ meetings: meetings }, function () {
-								console.log("Meeting title updated");
-							});
-						});
-					}
-
-					// Add event listener to the webhook post button
-					const downloadButton = row.querySelector(".download-button") as HTMLButtonElement | null;
-					if (downloadButton) {
-						downloadButton.addEventListener("click", function () {
-							// Send message to background script to download text file
-							const index = parseInt(downloadButton.getAttribute("data-index") ?? "-1");
-							const message: ExtensionMessage = {
-								type: "download_transcript_at_index",
-								index: index,
-							};
-							chrome.runtime.sendMessage(message, (responseUntyped) => {
-								const response = responseUntyped as ExtensionResponse;
-								if (!response.success) {
-									alert("Could not download transcript");
-									const parsedError = response.message as ErrorObject;
-									if (typeof parsedError === "object") {
-										console.error(parsedError.errorMessage);
-									}
-								}
-							});
-						});
-					}
-
-					// Add event listener to the webhook post button
-					const webhookPostButton = row.querySelector(".post-button") as HTMLButtonElement | null;
-					if (webhookPostButton) {
-						webhookPostButton.addEventListener("click", function () {
-							chrome.storage.sync.get(["webhookUrl"], function (resultSyncUntyped) {
-								const resultSync = resultSyncUntyped as ResultSync;
-								if (resultSync.webhookUrl) {
-									// Request runtime permission for the webhook URL. Needed for cases when user signs on a new browser—webhook URL and other sync variables are available, but runtime permissions will be missing.
-									requestWebhookAndNotificationPermission(resultSync.webhookUrl)
-										.then(() => {
-											// Disable button and update text
-											webhookPostButton.disabled = true;
-											webhookPostButton.textContent = meeting.webhookPostStatus === "new" ? "Posting..." : "Reposting...";
-
-											// Send message to background script to post webhook
-											const index = parseInt(webhookPostButton.getAttribute("data-index") ?? "-1");
-											const message: ExtensionMessage = {
-												type: "retry_webhook_at_index",
-												index: index,
-											};
-											chrome.runtime.sendMessage(message, (responseUntyped) => {
-												const response = responseUntyped as ExtensionResponse;
-												loadMeetings();
-												if (response.success) {
-													alert("Posted successfully!");
-												} else {
-													const parsedError = response.message as ErrorObject;
-													if (typeof parsedError === "object") {
-														console.error(parsedError.errorMessage);
-													}
-												}
-											});
-										})
-										.catch((error) => {
-											alert("Fine! No webhooks for you!");
-											console.error("Webhook permission error:", error);
-										});
-								} else {
-									alert("Please provide a webhook URL");
-								}
-							});
-						});
-					}
-
-					// Add event listener to the meeting delete button
-					const deleteButton = row.querySelector(".delete-button") as HTMLButtonElement | null;
-					if (deleteButton) {
-						deleteButton.addEventListener("click", function () {
-							if (confirm("Delete this meeting?")) {
-								meetings.splice(i, 1);
-								chrome.storage.local.set({ meetings: meetings }, function () {
-									console.log("Meeting title updated");
-								});
-							}
-						});
-					}
-				}
-				const meetingsTableContainer = document.querySelector("#meetings-table-container");
-				if (!isMeetingsTableExpanded && meetingsTableContainer && meetingsTableContainer.clientHeight > 280) {
-					meetingsTableContainer?.classList.add("fade-mask");
-					document.querySelector("#show-all")?.setAttribute("style", "display: block");
-				}
 			} else {
-				meetingsTable.innerHTML = `<tr><td colspan="4">Your next meeting will show up here</td></tr>`;
+				showToast("Permission denied", "error");
 			}
-		}
-	});
+		});
+	} catch {
+		showToast("Invalid URL", "error");
+	}
 }
 
-// Format duration between two timestamps, specified in milliseconds elapsed since the epoch
-function getDuration(meetingStartTimestamp: string, meetingEndTimestamp: string): string {
-	const duration = new Date(meetingEndTimestamp).getTime() - new Date(meetingStartTimestamp).getTime();
-	const durationMinutes = Math.round(duration / (1000 * 60));
-	const durationHours = Math.floor(durationMinutes / 60);
-	const remainingMinutes = durationMinutes % 60;
-	return durationHours > 0 ? `${durationHours}h ${remainingMinutes}m` : `${durationMinutes}m`;
+function showToast(message: string, type: "success" | "error"): void {
+	const toast = document.getElementById("toast");
+	if (!toast) return;
+
+	toast.textContent = message;
+	toast.className = `toast ${type} visible`;
+
+	setTimeout(() => {
+		toast.classList.remove("visible");
+	}, 3000);
+}
+
+function setVersion(): void {
+	const versionEl = document.getElementById("version");
+	if (versionEl) {
+		versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+	}
 }

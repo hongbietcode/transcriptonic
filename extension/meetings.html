@@ -3,9 +3,9 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>TranscripTonic—Meetings</title>
+		<title>TranscripTonic — Live Transcript</title>
 		<style>
-			@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&display=swap");
+			@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 			* {
 				margin: 0;
@@ -14,389 +14,179 @@
 			}
 
 			:root {
-				/* Primary Colors */
-				--primary: #3b82f6;
-				--primary-hover: #2563eb;
-				--primary-light: #eff6ff;
-
-				/* Functional Colors */
-				--success: #10b981;
-				--success-bg: #ecfdf5;
-				--error: #ef4444;
-				--error-bg: #fef2f2;
-				--warning: #f59e0b;
-				--warning-bg: #fffbeb;
-				--info: #6366f1;
-				--info-bg: #eef2ff;
-
-				/* Neutral Colors */
-				--bg-page: #f8fafc;
-				--bg-card: #ffffff;
-				--text-main: #0f172a;
+				--bg-primary: #f8fafc;
+				--bg-secondary: #ffffff;
+				--bg-tertiary: #f1f5f9;
+				--bg-hover: #e2e8f0;
+				--border: #e2e8f0;
+				--border-subtle: #f1f5f9;
+				--text-primary: #0f172a;
 				--text-secondary: #475569;
 				--text-muted: #94a3b8;
-				--border: #e2e8f0;
-				--border-focus: #3b82f6;
-
-				/* Effects */
-				--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-				--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-				--radius-lg: 16px;
+				--accent: #3b82f6;
+				--accent-hover: #2563eb;
+				--accent-subtle: rgba(59, 130, 246, 0.1);
+				--success: #22c55e;
+				--success-subtle: rgba(34, 197, 94, 0.1);
+				--warning: #f59e0b;
+				--warning-subtle: rgba(245, 158, 11, 0.1);
+				--error: #ef4444;
+				--error-subtle: rgba(239, 68, 68, 0.1);
+				--radius-sm: 6px;
 				--radius-md: 8px;
-				--radius-sm: 4px;
-				--transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+				--radius-lg: 12px;
+				--transition: 150ms ease;
+				--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+				--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 			}
 
 			body {
-				font-family: "Work Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-				background: var(--bg-page);
-				color: var(--text-main);
-				font-size: 15px;
+				font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+				background: var(--bg-primary);
+				color: var(--text-primary);
+				font-size: 14px;
 				line-height: 1.5;
 				min-height: 100vh;
 				-webkit-font-smoothing: antialiased;
 			}
 
-			.container {
-				max-width: 1200px;
-				margin: 0 auto;
-				padding: 32px 20px;
+			.app {
+				display: flex;
+				height: 100vh;
+				overflow: hidden;
 			}
 
-			@media (min-width: 768px) {
-				.container {
-					padding: 48px 32px;
-				}
-			}
-
-			/* Typography */
-			h1,
-			h2,
-			h3,
-			.font-heading {
-				font-family: "Outfit", sans-serif;
-				font-weight: 600;
-				color: var(--text-main);
-			}
-
-			/* Header */
-			.header {
+			.sidebar {
+				width: 280px;
+				background: var(--bg-secondary);
+				border-right: 1px solid var(--border);
 				display: flex;
 				flex-direction: column;
-				align-items: flex-start;
-				margin-bottom: 40px;
+				flex-shrink: 0;
+				box-shadow: var(--shadow-sm);
 			}
 
-			.header-top {
+			.sidebar-header {
+				padding: 20px;
+				border-bottom: 1px solid var(--border);
 				display: flex;
 				align-items: center;
 				gap: 12px;
-				margin-bottom: 8px;
 			}
 
 			.logo {
-				width: 40px;
-				height: 40px;
-				border-radius: 10px;
-				box-shadow: var(--shadow-sm);
-			}
-
-			h1 {
-				font-size: 28px;
-				letter-spacing: -0.02em;
-			}
-
-			.subtitle {
-				font-size: 16px;
-				color: var(--text-secondary);
-				max-width: 600px;
-			}
-
-			/* Layout Grid */
-			.main-grid {
-				display: grid;
-				gap: 32px;
-				grid-template-columns: 1fr;
-			}
-
-			@media (min-width: 1024px) {
-				.main-grid {
-					grid-template-columns: 2fr 1fr;
-				}
-			}
-
-			/* Cards */
-			.card {
-				background: var(--bg-card);
-				border: 1px solid var(--border);
-				border-radius: var(--radius-lg);
-				box-shadow: var(--shadow-sm);
-				overflow: hidden;
-				display: flex;
-				flex-direction: column;
-			}
-
-			.card-header {
-				padding: 24px;
-				border-bottom: 1px solid var(--border);
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				background: #ffffff;
-			}
-
-			.card-title {
-				font-size: 18px;
-				display: flex;
-				align-items: center;
-				gap: 8px;
-			}
-
-			.card-body {
-				padding: 24px;
-			}
-
-			/* Buttons */
-			.btn {
-				display: inline-flex;
-				align-items: center;
-				justify-content: center;
-				gap: 8px;
-				padding: 10px 20px;
+				width: 32px;
+				height: 32px;
 				border-radius: var(--radius-md);
-				font-family: "Outfit", sans-serif;
-				font-weight: 500;
-				font-size: 14px;
-				cursor: pointer;
-				transition: var(--transition);
-				border: 1px solid transparent;
-				line-height: 1;
 			}
 
-			.btn-primary {
-				background: var(--primary);
-				color: white;
-				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			.logo-text {
+				font-weight: 600;
+				font-size: 15px;
+				color: var(--text-primary);
 			}
 
-			.btn-primary:hover {
-				background: var(--primary-hover);
-				transform: translateY(-1px);
+			.sidebar-nav {
+				padding: 12px;
+				flex: 1;
+				overflow-y: auto;
 			}
 
-			.btn-outline {
-				background: transparent;
-				border-color: var(--border);
-				color: var(--text-secondary);
-			}
-
-			.btn-outline:hover {
-				border-color: var(--text-secondary);
-				color: var(--text-main);
-				background: var(--bg-page);
-			}
-
-			.btn:disabled {
-				opacity: 0.6;
-				cursor: not-allowed;
-				transform: none !important;
-			}
-
-			/* Form Elements */
-			.form-group {
+			.nav-section {
 				margin-bottom: 24px;
 			}
 
-			.form-group:last-child {
-				margin-bottom: 0;
-			}
-
-			label {
-				display: block;
-				font-size: 14px;
-				font-weight: 500;
-				color: var(--text-main);
+			.nav-section-title {
+				font-size: 11px;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				color: var(--text-muted);
+				padding: 0 8px;
 				margin-bottom: 8px;
 			}
 
-			.input-group {
+			.nav-item {
 				display: flex;
-				gap: 8px;
-			}
-
-			input[type="url"],
-			input[type="text"] {
-				flex: 1;
+				align-items: center;
+				gap: 10px;
 				padding: 10px 12px;
-				border: 1px solid var(--border);
 				border-radius: var(--radius-md);
-				font-family: inherit;
-				font-size: 14px;
-				color: var(--text-main);
-				background: var(--bg-card);
+				color: var(--text-secondary);
+				text-decoration: none;
+				cursor: pointer;
 				transition: var(--transition);
 			}
 
-			input[type="url"]:focus,
-			input[type="text"]:focus {
-				outline: none;
-				border-color: var(--primary);
-				box-shadow: 0 0 0 3px var(--primary-light);
+			.nav-item:hover {
+				background: var(--bg-hover);
+				color: var(--text-primary);
 			}
 
-			/* Toggle Switch */
-			.toggle-wrapper {
+			.nav-item.active {
+				background: var(--accent-subtle);
+				color: var(--accent);
+			}
+
+			.nav-item svg {
+				width: 18px;
+				height: 18px;
+				flex-shrink: 0;
+			}
+
+			.sidebar-footer {
+				padding: 16px;
+				border-top: 1px solid var(--border);
+			}
+
+			.version-badge {
+				font-size: 11px;
+				color: var(--text-muted);
+			}
+
+			.main {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+			}
+
+			.header {
+				padding: 16px 24px;
+				border-bottom: 1px solid var(--border);
 				display: flex;
 				align-items: center;
 				justify-content: space-between;
-				padding: 12px;
-				background: var(--bg-page);
-				border-radius: var(--radius-md);
-				border: 1px solid var(--border);
+				background: var(--bg-secondary);
 			}
 
-			.toggle-label {
-				font-size: 14px;
-				color: var(--text-main);
-				font-weight: 500;
+			.header-left {
+				display: flex;
+				align-items: center;
+				gap: 16px;
 			}
 
-			.switch {
-				position: relative;
-				display: inline-block;
-				width: 44px;
-				height: 24px;
+			.meeting-info {
+				display: flex;
+				flex-direction: column;
+				gap: 2px;
 			}
 
-			.switch input {
-				opacity: 0;
-				width: 0;
-				height: 0;
-			}
-
-			.slider {
-				position: absolute;
-				cursor: pointer;
-				top: 0;
-				left: 0;
-				right: 0;
-				bottom: 0;
-				background-color: var(--text-muted);
-				transition: 0.3s;
-				border-radius: 24px;
-			}
-
-			.slider:before {
-				position: absolute;
-				content: "";
-				height: 18px;
-				width: 18px;
-				left: 3px;
-				bottom: 3px;
-				background-color: white;
-				transition: 0.3s;
-				border-radius: 50%;
-			}
-
-			input:checked + .slider {
-				background-color: var(--primary);
-			}
-
-			input:checked + .slider:before {
-				transform: translateX(20px);
-			}
-
-			/* Radio Cards */
-			.radio-grid {
-				display: grid;
-				grid-template-columns: 1fr 1fr;
-				gap: 12px;
-			}
-
-			.radio-card {
-				position: relative;
-			}
-
-			.radio-card input {
-				position: absolute;
-				opacity: 0;
-				width: 0;
-				height: 0;
-			}
-
-			.radio-content {
-				display: block;
-				padding: 16px;
-				border: 2px solid var(--border);
-				border-radius: var(--radius-md);
-				cursor: pointer;
-				transition: var(--transition);
-				height: 100%;
-			}
-
-			.radio-content strong {
-				display: block;
-				font-family: "Outfit", sans-serif;
-				color: var(--text-main);
-				margin-bottom: 4px;
-			}
-
-			.radio-content span {
-				font-size: 13px;
-				color: var(--text-secondary);
-				line-height: 1.4;
-			}
-
-			.radio-card input:checked + .radio-content {
-				border-color: var(--primary);
-				background-color: var(--primary-light);
-			}
-
-			/* Table Styles */
-			.table-container {
-				width: 100%;
-				overflow-x: auto;
-			}
-
-			table {
-				width: 100%;
-				border-collapse: separate;
-				border-spacing: 0;
-				min-width: 600px;
-			}
-
-			th {
-				text-align: left;
-				padding: 16px;
-				font-size: 12px;
+			.meeting-title {
 				font-weight: 600;
-				text-transform: uppercase;
+				font-size: 16px;
+				color: var(--text-primary);
+			}
+
+			.meeting-meta {
+				font-size: 12px;
 				color: var(--text-secondary);
-				letter-spacing: 0.05em;
-				border-bottom: 1px solid var(--border);
-				background: var(--bg-card);
-				position: sticky;
-				top: 0;
+				display: flex;
+				align-items: center;
+				gap: 8px;
 			}
 
-			td {
-				padding: 16px;
-				border-bottom: 1px solid var(--border);
-				color: var(--text-main);
-				font-size: 14px;
-				vertical-align: middle;
-			}
-
-			tr:last-child td {
-				border-bottom: none;
-			}
-
-			tr:hover td {
-				background-color: var(--bg-page);
-			}
-
-			/* Status Badges */
-			.status-badge {
+			.status-indicator {
 				display: inline-flex;
 				align-items: center;
 				gap: 6px;
@@ -404,395 +194,859 @@
 				border-radius: 20px;
 				font-size: 12px;
 				font-weight: 500;
-				line-height: 1;
 			}
 
-			.status-success {
-				background-color: var(--success-bg);
+			.status-indicator.live {
+				background: var(--success-subtle);
 				color: var(--success);
 			}
 
-			.status-failed {
-				background-color: var(--error-bg);
-				color: var(--error);
-			}
-
-			.status-new {
-				background-color: var(--info-bg);
-				color: var(--info);
-			}
-
-			.status-badge::before {
+			.status-indicator.live::before {
 				content: "";
-				display: block;
 				width: 6px;
 				height: 6px;
 				border-radius: 50%;
-				background-color: currentColor;
+				background: currentColor;
+				animation: pulse 2s infinite;
 			}
 
-			/* Action Buttons */
-			.action-group {
+			@keyframes pulse {
+				0%, 100% { opacity: 1; }
+				50% { opacity: 0.5; }
+			}
+
+			.status-indicator.offline {
+				background: var(--bg-tertiary);
+				color: var(--text-muted);
+			}
+
+			.header-actions {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.search-box {
+				position: relative;
+			}
+
+			.search-input {
+				width: 240px;
+				padding: 8px 12px 8px 36px;
+				background: var(--bg-tertiary);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				color: var(--text-primary);
+				font-size: 13px;
+				transition: var(--transition);
+			}
+
+			.search-input::placeholder {
+				color: var(--text-muted);
+			}
+
+			.search-input:focus {
+				outline: none;
+				border-color: var(--accent);
+				background: var(--bg-secondary);
+			}
+
+			.search-icon {
+				position: absolute;
+				left: 12px;
+				top: 50%;
+				transform: translateY(-50%);
+				color: var(--text-muted);
+				width: 16px;
+				height: 16px;
+			}
+
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 6px;
+				padding: 8px 14px;
+				border-radius: var(--radius-md);
+				font-size: 13px;
+				font-weight: 500;
+				cursor: pointer;
+				transition: var(--transition);
+				border: none;
+			}
+
+			.btn-primary {
+				background: var(--accent);
+				color: white;
+			}
+
+			.btn-primary:hover {
+				background: var(--accent-hover);
+			}
+
+			.btn-secondary {
+				background: var(--bg-tertiary);
+				color: var(--text-secondary);
+				border: 1px solid var(--border);
+			}
+
+			.btn-secondary:hover {
+				background: var(--bg-hover);
+				color: var(--text-primary);
+			}
+
+			.btn-icon {
+				width: 34px;
+				height: 34px;
+				padding: 0;
+			}
+
+			.btn svg {
+				width: 16px;
+				height: 16px;
+			}
+
+			.content {
+				flex: 1;
+				display: flex;
+				overflow: hidden;
+			}
+
+			.transcript-panel {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				min-width: 0;
+			}
+
+			.transcript-list {
+				flex: 1;
+				overflow-y: auto;
+				padding: 24px;
+			}
+
+			.transcript-entry {
+				display: flex;
+				gap: 16px;
+				padding: 16px 0;
+				border-bottom: 1px solid var(--border-subtle);
+			}
+
+			.transcript-entry:last-child {
+				border-bottom: none;
+			}
+
+			.speaker-avatar {
+				width: 36px;
+				height: 36px;
+				border-radius: 50%;
+				background: var(--accent-subtle);
+				color: var(--accent);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-weight: 600;
+				font-size: 14px;
+				flex-shrink: 0;
+			}
+
+			.transcript-content {
+				flex: 1;
+				min-width: 0;
+			}
+
+			.transcript-header {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				margin-bottom: 4px;
+			}
+
+			.speaker-name {
+				font-weight: 600;
+				color: var(--text-primary);
+			}
+
+			.transcript-time {
+				font-size: 12px;
+				color: var(--text-muted);
+			}
+
+			.transcript-text {
+				color: var(--text-secondary);
+				line-height: 1.6;
+				word-wrap: break-word;
+			}
+
+			.transcript-text mark {
+				background: var(--warning-subtle);
+				color: var(--warning);
+				padding: 1px 4px;
+				border-radius: 3px;
+			}
+
+			.empty-state {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				padding: 48px;
+				text-align: center;
+			}
+
+			.empty-state svg {
+				width: 64px;
+				height: 64px;
+				color: var(--text-muted);
+				margin-bottom: 16px;
+			}
+
+			.empty-state h3 {
+				font-size: 18px;
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 8px;
+			}
+
+			.empty-state p {
+				color: var(--text-secondary);
+				max-width: 320px;
+			}
+
+			.quick-setup {
+				margin-top: 32px;
+				padding: 20px;
+				background: var(--accent-subtle);
+				border: 1px solid var(--accent);
+				border-radius: var(--radius-lg);
+				max-width: 400px;
+				text-align: left;
+			}
+
+			.quick-setup.hidden {
+				display: none;
+			}
+
+			.quick-setup-header {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				margin-bottom: 8px;
+				font-weight: 600;
+				color: var(--accent);
+			}
+
+			.quick-setup-header svg {
+				width: 20px;
+				height: 20px;
+			}
+
+			.quick-setup-desc {
+				font-size: 13px;
+				color: var(--text-secondary);
+				margin-bottom: 16px;
+			}
+
+			.quick-setup-form {
 				display: flex;
 				gap: 8px;
-				justify-content: flex-end;
 			}
 
-			.icon-btn {
-				width: 32px;
-				height: 32px;
+			.quick-setup-form .form-input {
+				flex: 1;
+			}
+
+			.settings-panel {
+				width: 340px;
+				background: var(--bg-secondary);
+				border-left: 1px solid var(--border);
+				overflow-y: auto;
+				display: none;
+			}
+
+			.settings-panel.visible {
+				display: block;
+			}
+
+			.settings-header {
+				padding: 20px;
+				border-bottom: 1px solid var(--border);
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			.settings-title {
+				font-weight: 600;
+				font-size: 15px;
+			}
+
+			.settings-close {
+				width: 28px;
+				height: 28px;
 				display: flex;
 				align-items: center;
 				justify-content: center;
 				border-radius: var(--radius-sm);
-				border: 1px solid transparent;
 				background: transparent;
+				border: none;
 				color: var(--text-secondary);
 				cursor: pointer;
 				transition: var(--transition);
 			}
 
-			.icon-btn:hover {
-				background-color: var(--bg-page);
-				color: var(--primary);
-				border-color: var(--border);
+			.settings-close:hover {
+				background: var(--bg-hover);
+				color: var(--text-primary);
 			}
 
-			.icon-btn.delete:hover {
-				color: var(--error);
-				background-color: var(--error-bg);
-				border-color: transparent;
+			.settings-section {
+				padding: 20px;
+				border-bottom: 1px solid var(--border);
 			}
 
-			.icon-btn img {
+			.settings-section-title {
+				font-size: 12px;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				color: var(--text-muted);
+				margin-bottom: 16px;
+			}
+
+			.form-group {
+				margin-bottom: 16px;
+			}
+
+			.form-group:last-child {
+				margin-bottom: 0;
+			}
+
+			.form-label {
+				display: block;
+				font-size: 13px;
+				font-weight: 500;
+				color: var(--text-primary);
+				margin-bottom: 8px;
+			}
+
+			.form-input {
+				width: 100%;
+				padding: 10px 12px;
+				background: var(--bg-tertiary);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				color: var(--text-primary);
+				font-size: 13px;
+				transition: var(--transition);
+			}
+
+			.form-input:focus {
+				outline: none;
+				border-color: var(--accent);
+			}
+
+			.toggle-row {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 12px;
+				background: var(--bg-tertiary);
+				border-radius: var(--radius-md);
+			}
+
+			.toggle-label {
+				font-size: 13px;
+				color: var(--text-primary);
+			}
+
+			.toggle {
+				position: relative;
+				width: 40px;
+				height: 22px;
+			}
+
+			.toggle input {
+				opacity: 0;
+				width: 0;
+				height: 0;
+			}
+
+			.toggle-slider {
+				position: absolute;
+				cursor: pointer;
+				inset: 0;
+				background: var(--bg-hover);
+				border-radius: 22px;
+				transition: var(--transition);
+			}
+
+			.toggle-slider::before {
+				content: "";
+				position: absolute;
 				width: 16px;
 				height: 16px;
-				opacity: 0.7;
-			}
-
-			.icon-btn:hover img {
-				opacity: 1;
-			}
-
-			/* Editable Title */
-			.meeting-title {
-				font-weight: 500;
-				color: var(--text-main);
-				padding: 4px 8px;
-				border-radius: var(--radius-sm);
+				left: 3px;
+				bottom: 3px;
+				background: white;
+				border-radius: 50%;
 				transition: var(--transition);
-				text-decoration: none !important;
-				border: 1px solid transparent;
-				cursor: text;
 			}
 
-			.meeting-title:hover,
-			.meeting-title:focus {
-				background-color: var(--bg-page);
-				border-color: var(--border);
-				outline: none;
+			.toggle input:checked + .toggle-slider {
+				background: var(--accent);
 			}
 
-			/* Fade Mask */
-			.fade-mask {
-				mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
-				-webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
-				max-height: 400px;
-				overflow: hidden;
+			.toggle input:checked + .toggle-slider::before {
+				transform: translateX(18px);
 			}
 
-			/* Integration Links */
-			.integration-list {
+			.radio-group {
 				display: flex;
 				flex-direction: column;
-				gap: 12px;
+				gap: 8px;
 			}
 
-			.integration-item {
+			.radio-option {
+				position: relative;
+			}
+
+			.radio-option input {
+				position: absolute;
+				opacity: 0;
+			}
+
+			.radio-content {
+				display: block;
+				padding: 12px;
+				background: var(--bg-tertiary);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				cursor: pointer;
+				transition: var(--transition);
+			}
+
+			.radio-content:hover {
+				border-color: var(--text-muted);
+			}
+
+			.radio-option input:checked + .radio-content {
+				border-color: var(--accent);
+				background: var(--accent-subtle);
+			}
+
+			.radio-content strong {
+				display: block;
+				font-size: 13px;
+				font-weight: 500;
+				color: var(--text-primary);
+				margin-bottom: 2px;
+			}
+
+			.radio-content span {
+				font-size: 12px;
+				color: var(--text-secondary);
+			}
+
+			.meetings-list {
+				padding: 16px;
+			}
+
+			.meeting-item {
 				display: flex;
 				align-items: center;
 				gap: 12px;
 				padding: 12px;
-				border: 1px solid var(--border);
 				border-radius: var(--radius-md);
-				text-decoration: none;
-				color: var(--text-main);
-				transition: var(--transition);
-			}
-
-			.integration-item:hover {
-				border-color: var(--primary);
-				background-color: var(--bg-page);
-				transform: translateX(2px);
-			}
-
-			.integration-icon {
-				color: var(--primary);
-			}
-
-			/* Code Block */
-			details {
-				border: 1px solid var(--border);
-				border-radius: var(--radius-md);
-				overflow: hidden;
-				margin-top: 12px;
-			}
-
-			summary {
-				padding: 12px 16px;
-				background: var(--bg-page);
 				cursor: pointer;
-				font-weight: 500;
-				font-size: 13px;
+				transition: var(--transition);
+				margin-bottom: 4px;
+			}
+
+			.meeting-item:hover {
+				background: var(--bg-hover);
+			}
+
+			.meeting-item.active {
+				background: var(--accent-subtle);
+			}
+
+			.meeting-icon {
+				width: 36px;
+				height: 36px;
+				border-radius: var(--radius-md);
+				background: var(--bg-tertiary);
+				display: flex;
+				align-items: center;
+				justify-content: center;
 				color: var(--text-secondary);
-				display: flex;
-				align-items: center;
-				gap: 8px;
+				flex-shrink: 0;
 			}
 
-			summary:hover {
-				color: var(--text-main);
+			.meeting-item.active .meeting-icon {
+				background: var(--accent);
+				color: white;
 			}
 
-			pre {
-				margin: 0;
-				padding: 16px;
-				background: #1e293b;
-				color: #e2e8f0;
-				font-family: "Menlo", "Monaco", "Courier New", monospace;
+			.meeting-details {
+				flex: 1;
+				min-width: 0;
+			}
+
+			.meeting-name {
+				font-weight: 500;
+				color: var(--text-primary);
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.meeting-date {
 				font-size: 12px;
-				overflow-x: auto;
-			}
-
-			/* Footer */
-			.footer {
-				margin-top: 48px;
-				padding-top: 24px;
-				border-top: 1px solid var(--border);
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				font-size: 13px;
 				color: var(--text-muted);
 			}
 
-			.footer a {
-				color: var(--text-secondary);
-				text-decoration: none;
+			.meeting-actions {
+				display: flex;
+				gap: 4px;
+				opacity: 0;
 				transition: var(--transition);
 			}
 
-			.footer a:hover {
-				color: var(--primary);
+			.meeting-item:hover .meeting-actions {
+				opacity: 1;
+			}
+
+			.meeting-action {
+				width: 28px;
+				height: 28px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: var(--radius-sm);
+				background: transparent;
+				border: none;
+				color: var(--text-secondary);
+				cursor: pointer;
+				transition: var(--transition);
+			}
+
+			.meeting-action:hover {
+				background: var(--bg-tertiary);
+				color: var(--text-primary);
+			}
+
+			.meeting-action.delete:hover {
+				background: var(--error-subtle);
+				color: var(--error);
+			}
+
+			.dropdown {
+				position: relative;
+			}
+
+			.dropdown-menu {
+				position: absolute;
+				top: 100%;
+				right: 0;
+				margin-top: 4px;
+				min-width: 160px;
+				background: var(--bg-secondary);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+				z-index: 100;
+				display: none;
+			}
+
+			.dropdown-menu.visible {
+				display: block;
+			}
+
+			.dropdown-item {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 10px 12px;
+				color: var(--text-secondary);
+				font-size: 13px;
+				cursor: pointer;
+				transition: var(--transition);
+			}
+
+			.dropdown-item:hover {
+				background: var(--bg-hover);
+				color: var(--text-primary);
+			}
+
+			.dropdown-item svg {
+				width: 16px;
+				height: 16px;
+			}
+
+			.toast {
+				position: fixed;
+				bottom: 24px;
+				right: 24px;
+				padding: 12px 16px;
+				background: var(--bg-secondary);
+				border: 1px solid var(--border);
+				border-radius: var(--radius-md);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-size: 13px;
+				z-index: 1000;
+				transform: translateY(100px);
+				opacity: 0;
+				transition: all 200ms ease;
+			}
+
+			.toast.visible {
+				transform: translateY(0);
+				opacity: 1;
+			}
+
+			.toast.success {
+				border-color: var(--success);
+			}
+
+			.toast.error {
+				border-color: var(--error);
+			}
+
+			@media (max-width: 768px) {
+				.sidebar {
+					display: none;
+				}
+
+				.settings-panel {
+					position: fixed;
+					inset: 0;
+					width: 100%;
+					z-index: 200;
+				}
+
+				.search-input {
+					width: 160px;
+				}
 			}
 		</style>
 	</head>
 	<body>
-		<div class="container">
-			<div class="main-grid">
-				<!-- Left Column: Meetings List -->
-				<section class="card">
-					<div class="card-header">
-						<h2 class="card-title">Recent Meetings</h2>
-						<button id="recover-last-meeting" class="btn btn-primary">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-								<path d="M21 3v5h-5" />
+		<div class="app">
+			<aside class="sidebar">
+				<div class="sidebar-header">
+					<img class="logo" src="./icon.png" alt="TranscripTonic" />
+					<span class="logo-text">TranscripTonic</span>
+				</div>
+
+				<nav class="sidebar-nav">
+					<div class="nav-section">
+						<div class="nav-section-title">Live</div>
+						<div class="nav-item active" id="nav-live">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="12" cy="12" r="10"/>
+								<circle cx="12" cy="12" r="3"/>
 							</svg>
-							Recover Last
+							<span>Live Transcript</span>
+						</div>
+					</div>
+
+					<div class="nav-section">
+						<div class="nav-section-title">History</div>
+						<div class="meetings-list" id="meetings-list"></div>
+					</div>
+				</nav>
+
+				<div class="sidebar-footer">
+					<span class="version-badge" id="version">v0.1.0</span>
+				</div>
+			</aside>
+
+			<main class="main">
+				<header class="header">
+					<div class="header-left">
+						<div class="meeting-info">
+							<h1 class="meeting-title" id="meeting-title">No Active Meeting</h1>
+							<div class="meeting-meta">
+								<span id="meeting-software">—</span>
+								<span>•</span>
+								<span id="meeting-time">—</span>
+							</div>
+						</div>
+						<div class="status-indicator offline" id="status-indicator">
+							<span>Offline</span>
+						</div>
+					</div>
+
+					<div class="header-actions">
+						<div class="search-box">
+							<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="11" cy="11" r="8"/>
+								<path d="m21 21-4.3-4.3"/>
+							</svg>
+							<input type="text" class="search-input" placeholder="Search transcript..." id="search-input" />
+						</div>
+
+						<div class="dropdown">
+							<button class="btn btn-secondary btn-icon" id="export-btn" title="Export">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+									<polyline points="7 10 12 15 17 10"/>
+									<line x1="12" y1="15" x2="12" y2="3"/>
+								</svg>
+							</button>
+							<div class="dropdown-menu" id="export-menu">
+								<div class="dropdown-item" id="export-txt">
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+										<polyline points="14 2 14 8 20 8"/>
+									</svg>
+									<span>Export as TXT</span>
+								</div>
+								<div class="dropdown-item" id="export-json">
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+										<polyline points="14 2 14 8 20 8"/>
+									</svg>
+									<span>Export as JSON</span>
+								</div>
+							</div>
+						</div>
+
+						<button class="btn btn-secondary btn-icon" id="settings-btn" title="Settings">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="12" cy="12" r="3"/>
+								<path d="M12 1v6m0 6v6"/>
+								<path d="M1 12h6m6 0h6"/>
+							</svg>
 						</button>
 					</div>
+				</header>
 
-					<div id="meetings-table-container" class="table-container">
-						<table>
-							<thead>
-								<tr>
-									<th>Meeting Title</th>
-									<th>Date & Duration</th>
-									<th>Status</th>
-									<th style="text-align: right">Actions</th>
-								</tr>
-							</thead>
-							<tbody id="meetings-table">
-								<!-- JS Populated -->
-							</tbody>
-						</table>
-					</div>
-
-					<div class="show-all-wrapper" style="padding: 16px; border-top: 1px solid var(--border)">
-						<button id="show-all" class="btn btn-outline" style="width: 100%; display: none">Show All History</button>
-					</div>
-				</section>
-
-				<!-- Right Column: Settings & Help -->
-				<div style="display: flex; flex-direction: column; gap: 24px">
-					<!-- Webhook Configuration -->
-					<section class="card">
-						<div class="card-header">
-							<h3 class="card-title">
-								<svg
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									style="color: var(--primary)"
-								>
-									<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-									<polyline points="16 6 12 2 8 6" />
-									<line x1="12" y1="2" x2="12" y2="15" />
+				<div class="content">
+					<div class="transcript-panel">
+						<div class="transcript-list" id="transcript-list">
+							<div class="empty-state" id="empty-state">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+									<path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"/>
+									<path d="M12 14v-4"/>
+									<path d="M12 8h.01"/>
+									<path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
 								</svg>
-								Webhook Setup
-							</h3>
-						</div>
-						<div class="card-body">
-							<form id="webhook-url-form">
-								<div class="form-group">
-									<label for="webhook-url">Webhook URL</label>
-									<div class="input-group">
-										<input type="url" id="webhook-url" placeholder="https://api.your-service.com/webhook" required />
-										<button id="save-webhook" class="btn btn-primary">Save</button>
+								<h3>No Transcript Yet</h3>
+								<p>Join a Google Meet, Zoom, or Teams meeting to see the live transcript here.</p>
+
+								<div class="quick-setup" id="quick-setup">
+									<div class="quick-setup-header">
+										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+										</svg>
+										<span>Quick Setup: Webhook</span>
+									</div>
+									<p class="quick-setup-desc">Connect a webhook to automatically send transcripts to Notion, Slack, or your own API.</p>
+									<div class="quick-setup-form">
+										<input type="url" class="form-input" id="quick-webhook-url" placeholder="https://api.example.com/webhook" />
+										<button class="btn btn-primary" id="quick-save-webhook">Save</button>
 									</div>
 								</div>
-
-								<div class="form-group">
-									<div class="toggle-wrapper">
-										<span class="toggle-label">Auto-post after meeting</span>
-										<label class="switch">
-											<input type="checkbox" id="auto-post-webhook" checked />
-											<span class="slider"></span>
-										</label>
-									</div>
-								</div>
-
-								<div class="form-group">
-									<label>Payload Format</label>
-									<div class="radio-grid">
-										<label class="radio-card">
-											<input type="radio" name="webhook-body-type" id="simple-webhook-body" checked />
-											<div class="radio-content">
-												<strong>Simple</strong>
-												<span>Pre-formatted text for Notion/Docs</span>
-											</div>
-										</label>
-										<label class="radio-card">
-											<input type="radio" name="webhook-body-type" id="advanced-webhook-body" />
-											<div class="radio-content">
-												<strong>Advanced</strong>
-												<span>Raw JSON for custom processing</span>
-											</div>
-										</label>
-									</div>
-								</div>
-							</form>
-						</div>
-					</section>
-
-					<!-- Help & Docs -->
-					<section class="card">
-						<div class="card-header">
-							<h3 class="card-title">
-								<svg
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									style="color: var(--primary)"
-								>
-									<circle cx="12" cy="12" r="10" />
-									<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-									<line x1="12" y1="17" x2="12.01" y2="17" />
-								</svg>
-								Integration Guides
-							</h3>
-						</div>
-						<div class="card-body">
-							<div class="integration-list">
-								<a
-									href="https://github.com/hongbietcode/transcriptonic/blob/main/docs/google-docs-integration-guide.md"
-									target="_blank"
-									class="integration-item"
-								>
-									<svg
-										class="integration-icon"
-										width="18"
-										height="18"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-										<polyline points="14 2 14 8 20 8" />
-									</svg>
-									<span>Google Docs Guide</span>
-								</a>
-								<a
-									href="https://github.com/hongbietcode/transcriptonic/blob/main/docs/n8n-integration-guide.md"
-									target="_blank"
-									class="integration-item"
-								>
-									<svg
-										class="integration-icon"
-										width="18"
-										height="18"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<circle cx="12" cy="12" r="3" />
-										<path d="M12 1v6m0 6v6" />
-										<path d="M1 12h6m6 0h6" />
-									</svg>
-									<span>n8n Automation Guide</span>
-								</a>
-							</div>
-
-							<div style="margin-top: 16px">
-								<label style="font-size: 12px; color: var(--text-secondary)">Payload Examples</label>
-								<details>
-									<summary>Simple JSON</summary>
-									<pre>
-{
-  "webhookBodyType": "simple",
-  "meetingSoftware": "Google Meet",
-  "meetingTitle": "Team Sync",
-  "transcript": "Speaker 1 (10:00): Hello..."
-}</pre
-									>
-								</details>
-								<details>
-									<summary>Advanced JSON</summary>
-									<pre>
-{
-  "webhookBodyType": "advanced",
-  "transcript": [
-    {
-      "personName": "Speaker 1",
-      "timestamp": "2024-01-15T10:00:00Z",
-      "transcriptText": "Hello"
-    }
-  ]
-}</pre
-									>
-								</details>
 							</div>
 						</div>
-					</section>
-				</div>
-			</div>
+					</div>
 
-			<footer class="footer">
-				<div class="footer-left">
-					<span id="version">v0.1.0</span>
+					<aside class="settings-panel" id="settings-panel">
+						<div class="settings-header">
+							<span class="settings-title">Settings</span>
+							<button class="settings-close" id="settings-close">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<line x1="18" y1="6" x2="6" y2="18"/>
+									<line x1="6" y1="6" x2="18" y2="18"/>
+								</svg>
+							</button>
+						</div>
+
+						<div class="settings-section">
+							<div class="settings-section-title">Webhook</div>
+							<div class="form-group">
+								<label class="form-label" for="webhook-url">Webhook URL</label>
+								<input type="url" class="form-input" id="webhook-url" placeholder="https://api.example.com/webhook" />
+							</div>
+							<div class="form-group">
+								<div class="toggle-row">
+									<span class="toggle-label">Auto-post after meeting</span>
+									<label class="toggle">
+										<input type="checkbox" id="auto-post-webhook" />
+										<span class="toggle-slider"></span>
+									</label>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="form-label">Payload Format</label>
+								<div class="radio-group">
+									<label class="radio-option">
+										<input type="radio" name="webhook-body" value="simple" checked />
+										<div class="radio-content">
+											<strong>Simple</strong>
+											<span>Pre-formatted text for Notion/Docs</span>
+										</div>
+									</label>
+									<label class="radio-option">
+										<input type="radio" name="webhook-body" value="advanced" />
+										<div class="radio-content">
+											<strong>Advanced</strong>
+											<span>Raw JSON for custom processing</span>
+										</div>
+									</label>
+								</div>
+							</div>
+							<button class="btn btn-primary" id="save-webhook" style="width: 100%">Save Webhook</button>
+						</div>
+
+						<div class="settings-section">
+							<div class="settings-section-title">Capture Mode</div>
+							<div class="radio-group">
+								<label class="radio-option">
+									<input type="radio" name="operation-mode" value="auto" checked />
+									<div class="radio-content">
+										<strong>Auto Mode</strong>
+										<span>Automatically record all meetings</span>
+									</div>
+								</label>
+								<label class="radio-option">
+									<input type="radio" name="operation-mode" value="manual" />
+									<div class="radio-content">
+										<strong>Manual Mode</strong>
+										<span>Toggle CC in Google Meet to start</span>
+									</div>
+								</label>
+							</div>
+						</div>
+
+						<div class="settings-section">
+							<div class="settings-section-title">Resources</div>
+							<a href="https://github.com/hongbietcode/transcriptonic" target="_blank" class="nav-item">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+								</svg>
+								<span>GitHub Repository</span>
+							</a>
+							<a href="https://github.com/hongbietcode/transcriptonic/wiki" target="_blank" class="nav-item">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+									<path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+								</svg>
+								<span>Documentation</span>
+							</a>
+						</div>
+					</aside>
 				</div>
-				<div class="footer-right">Crafted by <a href="https://github.com/hongbietcode" target="_blank">hongbietcode</a></div>
-			</footer>
+			</main>
 		</div>
+
+		<div class="toast" id="toast"></div>
 
 		<script type="module" src="meetings.js"></script>
 	</body>

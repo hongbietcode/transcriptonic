@@ -123,6 +123,22 @@ export interface ExtensionMessage {
 	index?: number;
 }
 
+export interface StreamingMessage {
+	type: "transcript_entry" | "meeting_info" | "meeting_started" | "meeting_ended";
+	data?: TranscriptBlock | MeetingInfo;
+}
+
+export interface MeetingInfo {
+	meetingSoftware: MeetingSoftware;
+	meetingTitle: string;
+	meetingStartTimestamp: string;
+}
+
+export interface PortMessage {
+	type: "subscribe" | "unsubscribe";
+	source: "content" | "meetings_page";
+}
+
 export interface ExtensionResponse {
 	/** whether the message was processed successfully as per the request */
 	success: boolean;
