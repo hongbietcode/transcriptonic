@@ -496,13 +496,16 @@ function chatMessagesMutationCallback(mutationsList: MutationRecord[]): void {
 function safeSendMessage(message: StreamingMessage): void {
 	try {
 		if (!chrome.runtime?.id) {
-			console.error("safeSendMessage - No runtime ID available");
+			if (message.type === "transcript_entry" || message.type === "meeting_ended") {
+				console.warn("Extension context invalidated - transcript data may be lost. Please reload the extension.");
+			}
 			return;
 		}
 		chrome.runtime.sendMessage(message, () => {
 			if (chrome.runtime.lastError) {
-				console.error("safeSendMessage - Runtime error:", chrome.runtime.lastError);
-			} else {
+				if (message.type === "transcript_entry" || message.type === "meeting_ended") {
+					console.warn("Failed to send message:", chrome.runtime.lastError.message);
+				}
 			}
 		});
 	} catch (err) {

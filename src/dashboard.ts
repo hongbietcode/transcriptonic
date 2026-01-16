@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	loadMeetingsHistory();
 	setupEventListeners();
 	setVersion();
+	renderTranscript();
 });
 
 function initializePort(): void {
