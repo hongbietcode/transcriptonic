@@ -646,49 +646,69 @@ async function waitForElement(selector: string, text?: string | RegExp): Promise
 }
 
 function showNotification(extensionStatusJSON: ExtensionStatusJSON): void {
-	// Banner CSS
-	let html = document.querySelector("html");
-	let obj = document.createElement("div");
-	let text = document.createElement("p");
+	const html = document.querySelector("html");
+	const notification = document.createElement("div");
+	const content = document.createElement("div");
+	const icon = document.createElement("div");
+	const text = document.createElement("div");
 
-	// Remove banner after 5s
-	setTimeout(() => {
-		obj.style.display = "none";
-	}, 5000);
-
+	// Set icon and styles based on status
 	if (extensionStatusJSON.status === 200) {
-		obj.style.cssText = `color: #2A9ACA; ${commonCSS}`;
-		text.innerHTML = extensionStatusJSON.message;
+		icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+		</svg>`;
+		notification.style.cssText = `${commonCSS} background: rgba(34, 197, 94, 0.95); border: 1px solid rgba(34, 197, 94, 1);`;
 	} else {
-		obj.style.cssText = `color: orange; ${commonCSS}`;
-		text.innerHTML = extensionStatusJSON.message;
+		icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+		</svg>`;
+		notification.style.cssText = `${commonCSS} background: rgba(245, 158, 11, 0.95); border: 1px solid rgba(245, 158, 11, 1);`;
 	}
 
-	obj.prepend(text);
-	if (html) html.append(obj);
+	text.innerHTML = extensionStatusJSON.message;
+	content.appendChild(icon);
+	content.appendChild(text);
+	notification.appendChild(content);
+
+	content.style.cssText = "display: flex; align-items: center; gap: 12px;";
+	icon.style.cssText = "display: flex; flex-shrink: 0;";
+	text.style.cssText = "flex: 1; font-size: 14px; line-height: 1.5;";
+
+	if (html) html.appendChild(notification);
+
+	// Slide in animation from left
+	setTimeout(() => {
+		notification.style.opacity = "1";
+		notification.style.transform = "translateX(0)";
+	}, 10);
+
+	// Slide out and remove after 5s
+	setTimeout(() => {
+		notification.style.opacity = "0";
+		notification.style.transform = "translateX(-8px)";
+		setTimeout(() => notification.remove(), 300);
+	}, 5000);
 }
 
 // CSS for notification
-const commonCSS = `background: rgb(255 255 255 / 100%); 
-    backdrop-filter: blur(16px); 
-    position: fixed;
-    top: 5%; 
-    left: 0; 
-    right: 0; 
-    margin-left: auto; 
-    margin-right: auto;
-    max-width: 780px;  
-    z-index: 1000; 
-    padding: 0rem 1rem;
-    border-radius: 8px; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    gap: 16px;  
-    font-size: 1rem; 
-    line-height: 1.5; 
-    font-family: "Google Sans",Roboto,Arial,sans-serif; 
-    box-shadow: rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px;`;
+const commonCSS = `
+	position: fixed;
+	top: 20px;
+	left: 20px;
+	transform: translateX(-8px);
+	z-index: 10000;
+	padding: 12px 16px;
+	border-radius: 8px;
+	color: white;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-weight: 500;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+	backdrop-filter: blur(8px);
+	opacity: 0;
+	transition: all 0.3s ease;
+	max-width: 420px;
+	min-width: 320px;
+`;
 
 function logError(code: string, err: unknown): void {
 	fetch(
@@ -714,7 +734,7 @@ function meetsMinVersion(oldVer: string, newVer: string): boolean {
 function checkExtensionStatus(): Promise<string> {
 	return new Promise((resolve, reject) => {
 		// Set default value as 200
-		extensionStatusJSON = { status: 200, message: "<strong>TranscripTonic is running</strong> <br /> Do not turn off captions" };
+		extensionStatusJSON = { status: 200, message: "CC Capture is active • Keep captions enabled" };
 
 		// https://stackoverflow.com/a/42518434
 		fetch("https://raw.githubusercontent.com/hongbietcode/transcriptonic/refs/heads/main/docs/status.json", { cache: "no-store" })
@@ -725,7 +745,7 @@ function checkExtensionStatus(): Promise<string> {
 				// Disable extension if version is below the min version
 				if (!meetsMinVersion(chrome.runtime.getManifest().version, minVersion)) {
 					extensionStatusJSON.status = 400;
-					extensionStatusJSON.message = `<strong>TranscripTonic is not running</strong> <br /> Please force update to v${minVersion} by following <a href="https://github.com/hongbietcode/transcriptonic/wiki/Manually-update-TranscripTonic" target="_blank">these instructions</a>`;
+					extensionStatusJSON.message = `Update required to v${minVersion} • <a href="https://github.com/hongbietcode/transcriptonic/wiki/Manually-update-TranscripTonic" target="_blank" style="color: white; text-decoration: underline;">Update now</a>`;
 				} else {
 					// Update status based on response
 					extensionStatusJSON.status = result.status;
