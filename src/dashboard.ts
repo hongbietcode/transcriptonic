@@ -14,6 +14,7 @@ interface LiveTranscriptEntry {
 	personName: string;
 	timestamp: string;
 	transcriptText: string;
+	isMarked?: boolean;
 }
 
 let currentView: "live" | "history" = "live";
@@ -181,8 +182,87 @@ function renderTranscript(): void {
 
 	if (emptyState) emptyState.style.display = "none";
 
-	container.innerHTML = filteredEntries.map((entry) => createTranscriptEntryHTML(entry)).join("");
+	container.innerHTML = filteredEntries.map((entry, index) => createTranscriptEntryHTML(entry, index)).join("");
+	attachMarkerListeners();
 	updateActionButtons(true);
+}
+
+function attachMarkerListeners(): void {
+	const markerButtons = document.querySelectorAll(".marker-btn");
+	markerButtons.forEach((btn) => {
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const index = parseInt((e.currentTarget as HTMLElement).dataset.index || "");
+			if (!isNaN(index)) {
+				toggleMarker(index);
+			}
+		});
+	});
+}
+
+function updateMarkerUI(entryElement: Element, isMarked: boolean): void {
+	const button = entryElement.querySelector(".marker-btn");
+	if (!button) return;
+
+	// Update button icon
+	if (isMarked) {
+		button.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+		button.setAttribute("title", "Unmark");
+	} else {
+		button.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+		button.setAttribute("title", "Mark as important");
+	}
+
+	// Update entry style
+	if (isMarked) {
+		entryElement.classList.add("marked");
+	} else {
+		entryElement.classList.remove("marked");
+	}
+}
+
+function toggleMarker(index: number): void {
+	const entryElement = document.querySelector(`.transcript-entry[data-index="${index}"]`);
+	if (!entryElement) return;
+
+	if (currentView === "live") {
+		// Toggle marker in live transcript
+		if (liveTranscript[index]) {
+			liveTranscript[index].isMarked = !liveTranscript[index].isMarked;
+			const isMarked = liveTranscript[index].isMarked;
+
+			// Update UI immediately
+			updateMarkerUI(entryElement, isMarked || false);
+
+			// Save to storage
+			chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+				const meetings = result.meetings || [];
+				if (meetings.length > 0) {
+					const lastMeeting = meetings[meetings.length - 1];
+					if (lastMeeting.transcript && lastMeeting.transcript[index]) {
+						lastMeeting.transcript[index].isMarked = isMarked;
+						chrome.storage.local.set({ meetings });
+					}
+				}
+			});
+		}
+	} else if (currentView === "history" && selectedMeetingIndex !== null) {
+		// Toggle marker in history
+		chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+			const meetings = result.meetings || [];
+			const meeting = meetings[selectedMeetingIndex!];
+			if (meeting?.transcript && meeting.transcript[index]) {
+				meeting.transcript[index].isMarked = !meeting.transcript[index].isMarked;
+				const isMarked = meeting.transcript[index].isMarked;
+
+				// Update UI immediately
+				updateMarkerUI(entryElement, isMarked || false);
+
+				// Save to storage
+				chrome.storage.local.set({ meetings });
+			}
+		});
+	}
 }
 
 function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
@@ -194,9 +274,11 @@ function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
 
 	if (searchQuery && !matchesSearch(entry)) return;
 
+	const index = liveTranscript.length - 1;
 	const div = document.createElement("div");
-	div.innerHTML = createTranscriptEntryHTML(entry);
+	div.innerHTML = createTranscriptEntryHTML(entry, index);
 	container.appendChild(div.firstElementChild!);
+	attachMarkerListeners();
 	updateActionButtons(true);
 }
 
@@ -217,18 +299,25 @@ function updateLastTranscriptEntry(entry: LiveTranscriptEntry): void {
 	}
 }
 
-function createTranscriptEntryHTML(entry: LiveTranscriptEntry): string {
+function createTranscriptEntryHTML(entry: LiveTranscriptEntry, index?: number): string {
 	const initials = getInitials(entry.personName);
 	const time = new Date(entry.timestamp).toLocaleTimeString("en-US", timeFormat);
 	const text = highlightSearch(escapeHtml(entry.transcriptText));
+	const markedClass = entry.isMarked ? "marked" : "";
+	const markedIcon = entry.isMarked
+		? `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`
+		: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
 
 	return `
-		<div class="transcript-entry">
+		<div class="transcript-entry ${markedClass}" data-index="${index ?? ""}">
 			<div class="speaker-avatar">${initials}</div>
 			<div class="transcript-content">
 				<div class="transcript-header">
 					<span class="speaker-name">${escapeHtml(entry.personName)}</span>
 					<span class="transcript-time">${time}</span>
+					<button class="marker-btn" data-index="${index ?? ""}" title="${entry.isMarked ? "Unmark" : "Mark as important"}">
+						${markedIcon}
+					</button>
 				</div>
 				<div class="transcript-text">${text}</div>
 			</div>
@@ -249,6 +338,7 @@ function getSelectedMeetingTranscript(): LiveTranscriptEntry[] {
 						personName: t.personName,
 						timestamp: t.timestamp,
 						transcriptText: t.transcriptText,
+						isMarked: t.isMarked,
 					}))
 				);
 			} else {
@@ -397,6 +487,7 @@ function selectMeeting(index: number, meeting: Meeting): void {
 				personName: t.personName,
 				timestamp: t.timestamp,
 				transcriptText: t.transcriptText,
+				isMarked: t.isMarked,
 			}));
 
 			if (entries.length === 0) {
@@ -410,7 +501,8 @@ function selectMeeting(index: number, meeting: Meeting): void {
 			}
 
 			if (emptyState) emptyState.style.display = "none";
-			container.innerHTML = entries.map((e) => createTranscriptEntryHTML(e)).join("");
+			container.innerHTML = entries.map((e, idx) => createTranscriptEntryHTML(e, idx)).join("");
+			attachMarkerListeners();
 			updateActionButtons(true);
 		}
 	});
@@ -625,6 +717,15 @@ function setupEventListeners(): void {
 	});
 }
 
+function formatTranscriptEntry(entry: LiveTranscriptEntry | TranscriptBlock): string {
+	const time = new Date(entry.timestamp).toLocaleTimeString();
+	let result = `[${time}] ${entry.personName}: ${entry.transcriptText}`;
+	if (entry.isMarked) {
+		result += `\n[MARKER ${time}] - User flagged this`;
+	}
+	return result;
+}
+
 function exportAsText(): void {
 	const entries = currentView === "live" ? liveTranscript : [];
 
@@ -633,9 +734,7 @@ function exportAsText(): void {
 			const meetings = result.meetings || [];
 			const meeting = meetings[selectedMeetingIndex!];
 			if (meeting?.transcript) {
-				const text = meeting.transcript
-					.map((t) => `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.personName}: ${t.transcriptText}`)
-					.join("\n\n");
+				const text = meeting.transcript.map((t) => formatTranscriptEntry(t)).join("\n\n");
 				const title = meeting.meetingTitle || meeting.title || "transcript";
 				const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 				const timestamp = new Date(meeting.meetingStartTimestamp).toISOString().slice(0, 10);
@@ -650,12 +749,12 @@ function exportAsText(): void {
 		const title = titleEl?.textContent || "live_transcript";
 		const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 		const timestamp = new Date().toISOString().slice(0, 10);
-		const text = entries.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`).join("\n\n");
+		const text = entries.map((e) => formatTranscriptEntry(e)).join("\n\n");
 		downloadFile(text, `${sanitizedTitle}_${timestamp}.txt`, "text/plain");
 		return;
 	}
 
-	const text = entries.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`).join("\n\n");
+	const text = entries.map((e) => formatTranscriptEntry(e)).join("\n\n");
 	downloadFile(text, "transcript.txt", "text/plain");
 }
 

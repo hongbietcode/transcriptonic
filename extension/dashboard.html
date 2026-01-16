@@ -424,6 +424,46 @@
 				color: var(--text-muted);
 			}
 
+			.marker-btn {
+				margin-left: auto;
+				background: transparent;
+				border: none;
+				padding: 4px 16px 4px 4px;
+				cursor: pointer;
+				color: var(--text-muted);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: var(--transition);
+				border-radius: var(--radius-sm);
+				opacity: 0;
+			}
+
+			.marker-btn svg {
+				width: 16px;
+				height: 16px;
+			}
+
+			.transcript-entry:hover .marker-btn {
+				opacity: 1;
+			}
+
+			.marker-btn:hover {
+				background: var(--bg-hover);
+				color: var(--warning);
+			}
+
+			.transcript-entry.marked {
+				background: var(--warning-subtle);
+				border-left: 3px solid var(--warning);
+				padding-left: 9px;
+			}
+
+			.transcript-entry.marked .marker-btn {
+				opacity: 1;
+				color: var(--warning);
+			}
+
 			.transcript-text {
 				color: var(--text-secondary);
 				line-height: 1.5;

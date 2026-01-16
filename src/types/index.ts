@@ -7,6 +7,8 @@ export interface TranscriptBlock {
 	timestamp: string;
 	/** actual transcript text */
 	transcriptText: string;
+	/** whether this entry is marked as important by user */
+	isMarked?: boolean;
 }
 
 export interface ChatMessage {
