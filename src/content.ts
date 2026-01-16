@@ -109,6 +109,10 @@ let hasMeetingStarted = false;
 // Capture meeting end to suppress any errors
 let hasMeetingEnded = false;
 
+// Throttle live streaming - send max every 300ms
+let lastStreamTime = 0;
+const STREAM_THROTTLE_MS = 300;
+
 let extensionStatusJSON: ExtensionStatusJSON;
 
 // Attempt to recover last meeting, if any. Abort if it takes more than 2 seconds to prevent current meeting getting messed up.
@@ -396,6 +400,22 @@ function transcriptMutationCallback(mutationsList: MutationRecord[]): void {
 								transcriptTextBuffer = currentTranscriptText;
 							}
 						}
+
+						// Live streaming - throttled to avoid overwhelming with messages
+						if (personNameBuffer && transcriptTextBuffer) {
+							const now = Date.now();
+							if (now - lastStreamTime >= STREAM_THROTTLE_MS) {
+								lastStreamTime = now;
+								safeSendMessage({
+									type: "transcript_entry",
+									data: {
+										personName: personNameBuffer === "You" ? userName : personNameBuffer,
+										timestamp: timestampBuffer,
+										transcriptText: transcriptTextBuffer,
+									},
+								});
+							}
+						}
 					}
 					// No people found in transcript DOM
 					else {
@@ -475,14 +495,18 @@ function chatMessagesMutationCallback(mutationsList: MutationRecord[]): void {
 //*********** HELPER FUNCTIONS **********//
 function safeSendMessage(message: StreamingMessage): void {
 	try {
-		if (!chrome.runtime?.id) return;
+		if (!chrome.runtime?.id) {
+			console.error("safeSendMessage - No runtime ID available");
+			return;
+		}
 		chrome.runtime.sendMessage(message, () => {
 			if (chrome.runtime.lastError) {
-				// Extension context invalidated, ignore
+				console.error("safeSendMessage - Runtime error:", chrome.runtime.lastError);
+			} else {
 			}
 		});
-	} catch {
-		// Extension context invalidated
+	} catch (err) {
+		console.error("safeSendMessage - Exception:", err);
 	}
 }
 

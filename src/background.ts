@@ -51,13 +51,14 @@ function broadcastToMeetingsPages(message: StreamingMessage): void {
 	meetingsPagePorts.forEach((port) => {
 		try {
 			port.postMessage(message);
-		} catch {
+		} catch (err) {
 			meetingsPagePorts.delete(port);
 		}
 	});
 }
 
 chrome.runtime.onMessage.addListener((msg: StreamingMessage, _sender, _sendResponse) => {
+
 	if (msg.type === "meeting_started") {
 		currentMeetingState = { isActive: true, info: null, transcript: [] };
 	} else if (msg.type === "meeting_info") {
@@ -341,7 +342,20 @@ function pickupLastMeetingFromStorage(): Promise<string> {
 						chrome.storage.local.get(["meetings"], function (resultLocalUntyped) {
 							const resultLocal = resultLocalUntyped as ResultLocal;
 							let meetings = resultLocal.meetings || [];
-							meetings.push(newMeetingEntry);
+
+							// Deduplicate: check if meeting with same start timestamp already exists
+							const existingIndex = meetings.findIndex(
+								(m) => m.meetingStartTimestamp === newMeetingEntry.meetingStartTimestamp
+							);
+
+							if (existingIndex !== -1) {
+								// Update existing meeting instead of adding duplicate
+								console.log("Duplicate meeting found, updating existing entry at index", existingIndex);
+								meetings[existingIndex] = newMeetingEntry;
+							} else {
+								// Add new meeting
+								meetings.push(newMeetingEntry);
+							}
 
 							// Keep only last 10 transcripts
 							if (meetings.length > 10) {

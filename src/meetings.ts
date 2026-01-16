@@ -83,15 +83,38 @@ function handleMeetingInfo(info: MeetingInfo): void {
 }
 
 function handleTranscriptEntry(entry: TranscriptBlock): void {
-	liveTranscript.push({
-		personName: entry.personName,
-		timestamp: entry.timestamp,
-		transcriptText: entry.transcriptText,
-	});
+	// Check if this is an update to the last entry (same person, recent timestamp)
+	const lastEntry = liveTranscript[liveTranscript.length - 1];
+	const isSameSpeaker = lastEntry && lastEntry.personName === entry.personName;
+	const timeDiff = lastEntry ? new Date(entry.timestamp).getTime() - new Date(lastEntry.timestamp).getTime() : Infinity;
+	const isRecentUpdate = timeDiff < 5000; // Within 5 seconds
 
-	if (currentView === "live") {
-		appendTranscriptEntry(entry);
+	if (isSameSpeaker && isRecentUpdate) {
+		// Update existing entry
+		liveTranscript[liveTranscript.length - 1] = {
+			personName: entry.personName,
+			timestamp: entry.timestamp,
+			transcriptText: entry.transcriptText,
+		};
+
+		if (currentView === "live") {
+			// Update last entry in UI
+			updateLastTranscriptEntry(entry);
+		}
+	} else {
+		// New entry
+		liveTranscript.push({
+			personName: entry.personName,
+			timestamp: entry.timestamp,
+			transcriptText: entry.transcriptText,
+		});
+
+		if (currentView === "live") {
+			appendTranscriptEntry(entry);
+		} else {
+		}
 	}
+
 }
 
 function handleMeetingEnded(): void {
@@ -162,6 +185,26 @@ function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
 	const div = document.createElement("div");
 	div.innerHTML = createTranscriptEntryHTML(entry);
 	container.appendChild(div.firstElementChild!);
+	container.scrollTop = container.scrollHeight;
+}
+
+function updateLastTranscriptEntry(entry: LiveTranscriptEntry): void {
+	const container = document.getElementById("transcript-list");
+	if (!container) return;
+
+	const entries = container.querySelectorAll(".transcript-entry");
+	if (entries.length === 0) return;
+
+	const lastEntry = entries[entries.length - 1];
+
+	// Update text content
+	const textEl = lastEntry.querySelector(".transcript-text");
+	if (textEl) {
+		const highlightedText = highlightSearch(escapeHtml(entry.transcriptText));
+		textEl.innerHTML = highlightedText;
+	}
+
+	// Keep scroll at bottom
 	container.scrollTop = container.scrollHeight;
 }
 
