@@ -70,6 +70,9 @@ function handleMeetingStarted(): void {
 	updateStatusIndicator(true);
 	updateNavigation();
 	renderTranscript();
+
+	const warningIcon = document.getElementById("pip-warning-icon");
+	if (warningIcon) warningIcon.classList.remove("hidden");
 }
 
 function handleMeetingInfo(info: MeetingInfo): void {
@@ -121,6 +124,9 @@ function handleMeetingEnded(): void {
 	isLive = false;
 	updateStatusIndicator(false);
 	loadMeetingsHistory();
+
+	const warningIcon = document.getElementById("pip-warning-icon");
+	if (warningIcon) warningIcon.classList.add("hidden");
 }
 
 function updateStatusIndicator(live: boolean): void {
@@ -169,8 +175,6 @@ function renderTranscript(): void {
 	container.innerHTML = filteredEntries
 		.map((entry) => createTranscriptEntryHTML(entry))
 		.join("");
-
-	container.scrollTop = container.scrollHeight;
 }
 
 function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
@@ -185,7 +189,6 @@ function appendTranscriptEntry(entry: LiveTranscriptEntry): void {
 	const div = document.createElement("div");
 	div.innerHTML = createTranscriptEntryHTML(entry);
 	container.appendChild(div.firstElementChild!);
-	container.scrollTop = container.scrollHeight;
 }
 
 function updateLastTranscriptEntry(entry: LiveTranscriptEntry): void {
@@ -203,9 +206,6 @@ function updateLastTranscriptEntry(entry: LiveTranscriptEntry): void {
 		const highlightedText = highlightSearch(escapeHtml(entry.transcriptText));
 		textEl.innerHTML = highlightedText;
 	}
-
-	// Keep scroll at bottom
-	container.scrollTop = container.scrollHeight;
 }
 
 function createTranscriptEntryHTML(entry: LiveTranscriptEntry): string {
@@ -327,6 +327,12 @@ function createMeetingItem(meeting: Meeting, index: number): HTMLElement {
 			<div class="meeting-date">${dateStr}</div>
 		</div>
 		<div class="meeting-actions">
+			<button class="meeting-action webhook" title="Post to Webhook">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+					<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+				</svg>
+			</button>
 			<button class="meeting-action download" title="Download">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -348,6 +354,7 @@ function createMeetingItem(meeting: Meeting, index: number): HTMLElement {
 		selectMeeting(index, meeting);
 	});
 
+	div.querySelector(".webhook")?.addEventListener("click", () => postMeetingToWebhook(index));
 	div.querySelector(".download")?.addEventListener("click", () => downloadMeeting(index));
 	div.querySelector(".delete")?.addEventListener("click", () => deleteMeeting(index));
 
@@ -395,6 +402,34 @@ function selectMeeting(index: number, meeting: Meeting): void {
 
 			if (emptyState) emptyState.style.display = "none";
 			container.innerHTML = entries.map((e) => createTranscriptEntryHTML(e)).join("");
+		}
+	});
+}
+
+function postMeetingToWebhook(index: number): void {
+	const button = document.querySelector(`.meeting-item[data-index="${index}"] .meeting-action.webhook`) as HTMLButtonElement;
+	if (button) {
+		button.disabled = true;
+		button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="loading-spinner">
+			<circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+			<path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+		</svg>`;
+	}
+
+	const message: ExtensionMessage = { type: "retry_webhook_at_index", index };
+	chrome.runtime.sendMessage(message, (response: ExtensionResponse) => {
+		if (button) {
+			button.disabled = false;
+			button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+				<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+			</svg>`;
+		}
+
+		if (response.success) {
+			showToast("Webhook posted successfully", "success");
+		} else {
+			showToast("Failed to post webhook", "error");
 		}
 	});
 }
@@ -466,7 +501,9 @@ function loadSettings(): void {
 
 function setupEventListeners(): void {
 	const navLive = document.getElementById("nav-live");
-	const searchInput = document.getElementById("search-input") as HTMLInputElement;
+	const recoverBtn = document.getElementById("recover-btn");
+	const downloadCurrentBtn = document.getElementById("download-current-btn");
+	const webhookBtn = document.getElementById("webhook-btn");
 	const settingsBtn = document.getElementById("settings-btn");
 	const settingsClose = document.getElementById("settings-close");
 	const settingsPanel = document.getElementById("settings-panel");
@@ -499,9 +536,26 @@ function setupEventListeners(): void {
 		}
 	});
 
-	searchInput?.addEventListener("input", () => {
-		searchQuery = searchInput.value;
-		renderTranscript();
+	recoverBtn?.addEventListener("click", () => {
+		const message: ExtensionMessage = { type: "recover_last_meeting" };
+		chrome.runtime.sendMessage(message, (responseUntyped) => {
+			const response = responseUntyped as ExtensionResponse;
+			if (response.success) {
+				showToast(response.message as string, "success");
+				loadMeetingsHistory();
+			} else {
+				const error = response.message as { errorCode: string; errorMessage: string };
+				showToast(error.errorMessage, "error");
+			}
+		});
+	});
+
+	downloadCurrentBtn?.addEventListener("click", () => {
+		exportAsText();
+	});
+
+	webhookBtn?.addEventListener("click", () => {
+		postToWebhook();
 	});
 
 	settingsBtn?.addEventListener("click", () => {
@@ -562,9 +616,24 @@ function exportAsText(): void {
 				const text = meeting.transcript
 					.map((t) => `[${new Date(t.timestamp).toLocaleTimeString()}] ${t.personName}: ${t.transcriptText}`)
 					.join("\n\n");
-				downloadFile(text, "transcript.txt", "text/plain");
+				const title = meeting.meetingTitle || meeting.title || "transcript";
+				const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+				const timestamp = new Date(meeting.meetingStartTimestamp).toISOString().slice(0, 10);
+				downloadFile(text, `${sanitizedTitle}_${timestamp}.txt`, "text/plain");
 			}
 		});
+		return;
+	}
+
+	if (currentView === "live" && entries.length > 0) {
+		const titleEl = document.getElementById("meeting-title");
+		const title = titleEl?.textContent || "live_transcript";
+		const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+		const timestamp = new Date().toISOString().slice(0, 10);
+		const text = entries
+			.map((e) => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.personName}: ${e.transcriptText}`)
+			.join("\n\n");
+		downloadFile(text, `${sanitizedTitle}_${timestamp}.txt`, "text/plain");
 		return;
 	}
 
@@ -598,6 +667,72 @@ function downloadFile(content: string, filename: string, type: string): void {
 	a.download = filename;
 	a.click();
 	URL.revokeObjectURL(url);
+}
+
+function postToWebhook(): void {
+	const webhookBtn = document.getElementById("webhook-btn") as HTMLButtonElement;
+
+	if (webhookBtn) {
+		webhookBtn.disabled = true;
+		const originalHTML = webhookBtn.innerHTML;
+		webhookBtn.innerHTML = `
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="loading-spinner">
+				<circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+				<path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+			</svg>
+			<span>Posting...</span>
+		`;
+
+		const resetButton = () => {
+			if (webhookBtn) {
+				webhookBtn.disabled = false;
+				webhookBtn.innerHTML = originalHTML;
+			}
+		};
+
+		if (currentView === "history" && selectedMeetingIndex !== null) {
+			chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+				const meetings = result.meetings || [];
+				const meeting = meetings[selectedMeetingIndex!];
+				const title = meeting?.meetingTitle || meeting?.title || "Meeting";
+
+				const message: ExtensionMessage = { type: "retry_webhook_at_index", index: selectedMeetingIndex! };
+				chrome.runtime.sendMessage(message, (response: ExtensionResponse) => {
+					resetButton();
+					if (response.success) {
+						showToast(`Posted "${title}" to webhook`, "success");
+					} else {
+						showToast(`Failed to post "${title}"`, "error");
+					}
+				});
+			});
+		} else if (currentView === "live") {
+			chrome.storage.local.get(["meetings"], (result: ResultLocal) => {
+				const meetings = result.meetings || [];
+				if (meetings.length > 0) {
+					const lastIndex = meetings.length - 1;
+					const meeting = meetings[lastIndex];
+					const titleEl = document.getElementById("meeting-title");
+					const title = titleEl?.textContent || meeting?.meetingTitle || meeting?.title || "Live Meeting";
+
+					const message: ExtensionMessage = { type: "retry_webhook_at_index", index: lastIndex };
+					chrome.runtime.sendMessage(message, (response: ExtensionResponse) => {
+						resetButton();
+						if (response.success) {
+							showToast(`Posted "${title}" to webhook`, "success");
+						} else {
+							showToast(`Failed to post "${title}"`, "error");
+						}
+					});
+				} else {
+					resetButton();
+					showToast("No meeting to post", "error");
+				}
+			});
+		} else {
+			resetButton();
+		}
+	}
 }
 
 function saveWebhookUrl(inputId: string): void {

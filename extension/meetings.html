@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>TranscripTonic — Live Transcript</title>
+		<title>cc-capture — Live Transcript</title>
 		<style>
 			@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
@@ -57,7 +57,7 @@
 			}
 
 			.sidebar {
-				width: 280px;
+				width: 360px;
 				background: var(--bg-secondary);
 				border-right: 1px solid var(--border);
 				display: flex;
@@ -87,7 +87,7 @@
 			}
 
 			.sidebar-nav {
-				padding: 12px;
+				padding: 8px;
 				flex: 1;
 				overflow-y: auto;
 			}
@@ -210,9 +210,73 @@
 				animation: pulse 2s infinite;
 			}
 
+			.pip-warning-icon {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 20px;
+				height: 20px;
+				color: var(--warning);
+				cursor: help;
+				position: relative;
+				margin-left: 8px;
+			}
+
+			.pip-warning-icon svg {
+				width: 16px;
+				height: 16px;
+			}
+
+			.pip-warning-icon::after {
+				content: "Open Google Meet PiP to sync live transcript (when Google Meet tab inactive)";
+				position: absolute;
+				left: 50%;
+				top: calc(100% + 8px);
+				transform: translateX(-50%);
+				background: var(--warning-subtle);
+				border: 1px solid var(--warning);
+				color: var(--warning);
+				padding: 8px 14px;
+				border-radius: var(--radius-md);
+				font-size: 12px;
+				font-weight: 500;
+				white-space: nowrap;
+				opacity: 0;
+				pointer-events: none;
+				transition: opacity 0.2s;
+				z-index: 1000;
+				box-shadow: var(--shadow-md);
+			}
+
+			.pip-warning-icon:hover::after {
+				opacity: 1;
+			}
+
+			.pip-warning-icon.hidden {
+				display: none;
+			}
+
 			@keyframes pulse {
-				0%, 100% { opacity: 1; }
-				50% { opacity: 0.5; }
+				0%,
+				100% {
+					opacity: 1;
+				}
+				50% {
+					opacity: 0.5;
+				}
+			}
+
+			@keyframes spin {
+				from {
+					transform: rotate(0deg);
+				}
+				to {
+					transform: rotate(360deg);
+				}
+			}
+
+			.loading-spinner {
+				animation: spin 1s linear infinite;
 			}
 
 			.status-indicator.offline {
@@ -224,41 +288,6 @@
 				display: flex;
 				align-items: center;
 				gap: 8px;
-			}
-
-			.search-box {
-				position: relative;
-			}
-
-			.search-input {
-				width: 240px;
-				padding: 8px 12px 8px 36px;
-				background: var(--bg-tertiary);
-				border: 1px solid var(--border);
-				border-radius: var(--radius-md);
-				color: var(--text-primary);
-				font-size: 13px;
-				transition: var(--transition);
-			}
-
-			.search-input::placeholder {
-				color: var(--text-muted);
-			}
-
-			.search-input:focus {
-				outline: none;
-				border-color: var(--accent);
-				background: var(--bg-secondary);
-			}
-
-			.search-icon {
-				position: absolute;
-				left: 12px;
-				top: 50%;
-				transform: translateY(-50%);
-				color: var(--text-muted);
-				width: 16px;
-				height: 16px;
 			}
 
 			.btn {
@@ -323,6 +352,7 @@
 				flex: 1;
 				overflow-y: auto;
 				padding: 24px;
+				padding-bottom: 20vh;
 			}
 
 			.transcript-entry {
@@ -649,8 +679,8 @@
 				color: var(--text-secondary);
 			}
 
-			.meetings-list {
-				padding: 16px;
+			.meetings-list + .meetings-list {
+				margin-top: 8px;
 			}
 
 			.meeting-item {
@@ -839,8 +869,8 @@
 		<div class="app">
 			<aside class="sidebar">
 				<div class="sidebar-header">
-					<img class="logo" src="./icon.png" alt="TranscripTonic" />
-					<span class="logo-text">TranscripTonic</span>
+					<img class="logo" src="./icon.png" alt="cc-capture" />
+					<span class="logo-text">cc-capture</span>
 				</div>
 
 				<nav class="sidebar-nav">
@@ -848,8 +878,8 @@
 						<div class="nav-section-title">Live</div>
 						<div class="nav-item active" id="nav-live">
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<circle cx="12" cy="12" r="10"/>
-								<circle cx="12" cy="12" r="3"/>
+								<circle cx="12" cy="12" r="10" />
+								<circle cx="12" cy="12" r="3" />
 							</svg>
 							<span>Live Transcript</span>
 						</div>
@@ -877,52 +907,56 @@
 								<span id="meeting-time">—</span>
 							</div>
 						</div>
-						<div class="status-indicator offline" id="status-indicator">
-							<span>Offline</span>
+						<div style="display: flex; align-items: center">
+							<div class="status-indicator offline" id="status-indicator">
+								<span>Offline</span>
+							</div>
+							<div class="pip-warning-icon hidden" id="pip-warning-icon">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<circle cx="12" cy="12" r="10" />
+									<path d="M12 16v-4" />
+									<path d="M12 8h.01" />
+								</svg>
+							</div>
 						</div>
 					</div>
 
 					<div class="header-actions">
-						<div class="search-box">
-							<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<circle cx="11" cy="11" r="8"/>
-								<path d="m21 21-4.3-4.3"/>
-							</svg>
-							<input type="text" class="search-input" placeholder="Search transcript..." id="search-input" />
-						</div>
-
-						<div class="dropdown">
-							<button class="btn btn-secondary btn-icon" id="export-btn" title="Export">
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-									<polyline points="7 10 12 15 17 10"/>
-									<line x1="12" y1="15" x2="12" y2="3"/>
-								</svg>
-							</button>
-							<div class="dropdown-menu" id="export-menu">
-								<div class="dropdown-item" id="export-txt">
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-										<polyline points="14 2 14 8 20 8"/>
-									</svg>
-									<span>Export as TXT</span>
-								</div>
-								<div class="dropdown-item" id="export-json">
-									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-										<polyline points="14 2 14 8 20 8"/>
-									</svg>
-									<span>Export as JSON</span>
-								</div>
-							</div>
-						</div>
-
-						<button class="btn btn-secondary btn-icon" id="settings-btn" title="Settings">
+						<button class="btn btn-secondary" id="download-current-btn">
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<circle cx="12" cy="12" r="3"/>
-								<path d="M12 1v6m0 6v6"/>
-								<path d="M1 12h6m6 0h6"/>
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+								<polyline points="7 10 12 15 17 10" />
+								<line x1="12" y1="15" x2="12" y2="3" />
 							</svg>
+							<span>Download</span>
+						</button>
+
+						<button class="btn btn-secondary" id="webhook-btn">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+								<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+							</svg>
+							<span>Webhook</span>
+						</button>
+
+						<button class="btn btn-secondary" id="recover-btn">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+								<path d="M21 3v5h-5" />
+								<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+								<path d="M8 16H3v5" />
+							</svg>
+							<span>Recover</span>
+						</button>
+
+						<button class="btn btn-secondary" id="settings-btn">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="12" cy="12" r="3" />
+								<path
+									d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"
+								/>
+							</svg>
+							<span>Settings</span>
 						</button>
 					</div>
 				</header>
@@ -932,10 +966,10 @@
 						<div class="transcript-list" id="transcript-list">
 							<div class="empty-state" id="empty-state">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-									<path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z"/>
-									<path d="M12 14v-4"/>
-									<path d="M12 8h.01"/>
-									<path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+									<path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z" />
+									<path d="M12 14v-4" />
+									<path d="M12 8h.01" />
+									<path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
 								</svg>
 								<h3>No Transcript Yet</h3>
 								<p>Join a Google Meet, Zoom, or Teams meeting to see the live transcript here.</p>
@@ -943,11 +977,13 @@
 								<div class="quick-setup" id="quick-setup">
 									<div class="quick-setup-header">
 										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-											<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+											<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
 										</svg>
 										<span>Quick Setup: Webhook</span>
 									</div>
-									<p class="quick-setup-desc">Connect a webhook to automatically send transcripts to Notion, Slack, or your own API.</p>
+									<p class="quick-setup-desc">
+										Connect a webhook to automatically send transcripts to Notion, Slack, or your own API.
+									</p>
 									<div class="quick-setup-form">
 										<input type="url" class="form-input" id="quick-webhook-url" placeholder="https://api.example.com/webhook" />
 										<button class="btn btn-primary" id="quick-save-webhook">Save</button>
@@ -962,8 +998,8 @@
 							<span class="settings-title">Settings</span>
 							<button class="settings-close" id="settings-close">
 								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<line x1="18" y1="6" x2="6" y2="18"/>
-									<line x1="6" y1="6" x2="18" y2="18"/>
+									<line x1="18" y1="6" x2="6" y2="18" />
+									<line x1="6" y1="6" x2="18" y2="18" />
 								</svg>
 							</button>
 						</div>
@@ -1029,14 +1065,16 @@
 							<div class="settings-section-title">Resources</div>
 							<a href="https://github.com/hongbietcode/transcriptonic" target="_blank" class="nav-item">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+									<path
+										d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+									/>
 								</svg>
 								<span>GitHub Repository</span>
 							</a>
 							<a href="https://github.com/hongbietcode/transcriptonic/wiki" target="_blank" class="nav-item">
 								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-									<path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+									<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+									<path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
 								</svg>
 								<span>Documentation</span>
 							</a>
